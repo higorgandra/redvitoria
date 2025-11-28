@@ -1,3 +1,4 @@
+// v1.3 - Ajuste de layout e texto do botão principal
 import React, { useState } from 'react';
 import { ShoppingBag, Menu, X, Star, Truck, MessageCircle, MapPin, Check, Package } from 'lucide-react';
 
@@ -110,32 +111,32 @@ const App = () => {
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
             <div className="flex items-center">
-              <div className="bg-red-600 text-white p-2 rounded-lg mr-2 transform -rotate-3">
+              <div className="bg-[#8B0000] text-white p-2 rounded-lg mr-2 transform -rotate-3">
                 <ShoppingBag size={24} strokeWidth={2.5} />
               </div>
               <div>
                 <h1 className="text-2xl font-black text-gray-900 tracking-tight">
-                  RED<span className="text-red-600">VITORIA</span>
+                  RED<span className="text-[#8B0000]">VITORIA</span>
                 </h1>
                 <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase block -mt-1">
-                  Pronta Entrega Multimarca
+                  Pronta Entrega Salvador
                 </span>
               </div>
             </div>
 
             {/* Desktop Menu */}
             <div className="hidden md:flex space-x-8 items-center">
-              <a href="#home" className="hover:text-red-600 transition font-medium">Início</a>
-              <a href="#estoque" className="hover:text-red-600 transition font-medium">Estoque Real</a>
-              <a href="#contato" className="hover:text-red-600 transition font-medium">Falar no Zap</a>
+              <a href="#home" className="hover:text-[#8B0000] transition font-medium">Início</a>
+              <a href="#estoque" className="hover:text-[#8B0000] transition font-medium">Estoque Real</a>
+              <a href="#contato" className="hover:text-[#8B0000] transition font-medium">Falar no Zap</a>
               
               <button 
                 onClick={checkoutWhatsApp}
-                className="relative p-2 hover:bg-red-50 rounded-full transition group"
+                className="relative p-2 hover:bg-[#B22222]/10 rounded-full transition group"
               >
-                <ShoppingBag className="text-gray-700 group-hover:text-red-600 transition" />
+                <ShoppingBag className="text-gray-700 group-hover:text-[#8B0000] transition" />
                 {cart.length > 0 && (
-                  <span className="absolute top-0 right-0 bg-red-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold">
+                  <span className="absolute top-0 right-0 bg-[#B22222] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold">
                     {cart.length}
                   </span>
                 )}
@@ -150,7 +151,7 @@ const App = () => {
               >
                 <ShoppingBag className="text-gray-700" />
                 {cart.length > 0 && (
-                  <span className="absolute top-0 right-0 bg-red-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                  <span className="absolute top-0 right-0 bg-[#8B0000] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
                     {cart.length}
                   </span>
                 )}
@@ -165,33 +166,33 @@ const App = () => {
         {/* Mobile Dropdown */}
         {isMenuOpen && (
           <div className="md:hidden bg-white border-t border-gray-100 p-4 space-y-4 shadow-lg">
-            <a href="#home" className="block text-gray-600 hover:text-red-600 font-medium" onClick={() => setIsMenuOpen(false)}>Início</a>
-            <a href="#estoque" className="block text-gray-600 hover:text-red-600 font-medium" onClick={() => setIsMenuOpen(false)}>Estoque Real</a>
-            <a href="#contato" className="block text-gray-600 hover:text-red-600 font-medium" onClick={() => setIsMenuOpen(false)}>Combinar Entrega</a>
+            <a href="#home" className="block text-gray-600 hover:text-[#8B0000] font-medium" onClick={() => setIsMenuOpen(false)}>Início</a>
+            <a href="#estoque" className="block text-gray-600 hover:text-[#8B0000] font-medium" onClick={() => setIsMenuOpen(false)}>Estoque Real</a>
+            <a href="#contato" className="block text-gray-600 hover:text-[#8B0000] font-medium" onClick={() => setIsMenuOpen(false)}>Combinar Entrega</a>
           </div>
         )}
       </nav>
 
       {/* Hero Section */}
       <section id="home" className="relative bg-white py-16 lg:py-24 overflow-hidden border-b border-gray-100">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-red-50/50 skew-x-12 transform translate-x-20"></div>
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-[#B22222]/10 skew-x-12 transform translate-x-20"></div>
         <div className="max-w-7xl mx-auto px-4 relative z-10 flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 mb-12 md:mb-0">
-            <div className="inline-flex items-center gap-2 py-1 px-4 rounded-full bg-red-100 text-red-700 text-xs font-bold uppercase tracking-wider mb-6">
+            <div className="inline-flex items-center gap-2 py-1 px-4 rounded-full bg-[#B22222]/20 text-[#8B0000] text-xs font-bold uppercase tracking-wider mb-6">
               <MapPin size={14} />
               Exclusivo para Salvador
             </div>
             <h2 className="text-4xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
               Sem espera. <br />
-              <span className="text-red-600">Comprou, chegou.</span>
+              <span className="text-[#8B0000]">Comprou, chegou.</span>
             </h2>
             <p className="text-lg text-gray-600 mb-8 max-w-lg leading-relaxed">
               Esqueça os prazos longos de catálogo. Aqui na <strong>RedVitoria</strong>, todos os produtos já estão comigo. Pediu hoje, recebe rápido.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4">
-              <a href="#estoque" className="bg-red-600 text-white px-8 py-4 rounded-lg font-bold hover:bg-red-700 transition shadow-lg shadow-red-200 text-center">
-                Ver Disponíveis Agora
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <a href="#estoque" className="bg-[#8B0000] text-white px-8 py-4 rounded-lg font-bold hover:bg-[#650000] transition shadow-lg shadow-[#B22222]/30 text-center w-full sm:w-auto">
+                Estoque
               </a>
               <div className="flex items-center gap-3 px-6 py-4 bg-white border border-gray-100 rounded-lg shadow-sm">
                 <Truck className="text-green-600" />
@@ -204,7 +205,7 @@ const App = () => {
           
           <div className="md:w-1/2 flex justify-center relative">
             <div className="relative">
-              <div className="absolute -inset-4 bg-red-600/10 rounded-full blur-xl animate-pulse"></div>
+              <div className="absolute -inset-4 bg-[#B22222]/20 rounded-full blur-xl animate-pulse"></div>
               <img 
                 src="https://images.unsplash.com/photo-1555529771-7888783a18d3?auto=format&fit=crop&q=80&w=600" 
                 alt="Produtos Pronta Entrega" 
@@ -280,7 +281,7 @@ const App = () => {
                     </div>
                     <button 
                       onClick={() => addToCart(product)}
-                      className="bg-gray-900 text-white p-3 rounded-lg hover:bg-red-600 transition shadow-md group-hover:shadow-lg"
+                      className="bg-gray-900 text-white p-3 rounded-lg hover:bg-[#650000] transition shadow-md group-hover:shadow-lg"
                       title="Adicionar à sacola"
                     >
                       <ShoppingBag size={18} />
@@ -294,11 +295,11 @@ const App = () => {
       </section>
 
       {/* Why Choose RedVitoria */}
-      <section className="bg-gray-900 text-white py-16 border-t-4 border-red-600">
+      <section className="bg-gray-900 text-white py-16 border-t-4 border-[#8B0000]">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-8">
             <div className="flex items-start gap-4 p-4">
-              <div className="bg-gray-800 p-3 rounded-lg text-red-500 shrink-0">
+              <div className="bg-gray-800 p-3 rounded-lg text-[#8B0000] shrink-0">
                 <Package size={32} />
               </div>
               <div>
@@ -318,7 +319,7 @@ const App = () => {
             </div>
 
             <div className="flex items-start gap-4 p-4">
-              <div className="bg-gray-800 p-3 rounded-lg text-red-500 shrink-0">
+              <div className="bg-gray-800 p-3 rounded-lg text-[#8B0000] shrink-0">
                 <Star size={32} />
               </div>
               <div>
@@ -334,7 +335,7 @@ const App = () => {
       <footer id="contato" className="bg-white pt-12 pb-8 border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
           <div className="text-center md:text-left">
-            <h2 className="text-xl font-black text-gray-900">RED<span className="text-red-600">VITORIA</span></h2>
+            <h2 className="text-xl font-black text-gray-900">RED<span className="text-[#8B0000]">VITORIA</span></h2>
             <p className="text-sm text-gray-500 mt-1">Sua loja de pronta entrega em Salvador.</p>
           </div>
           <button 
