@@ -1,5 +1,5 @@
-// v1.3 - Ajuste de layout e texto do botão principal
-import React, { useState } from 'react';
+// v1.7 - Ajuste de layout dos botões do hero para mobile
+import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Menu, X, Star, Truck, MessageCircle, MapPin, Check, Package } from 'lucide-react';
 
 // Dados simulados dos produtos (Foco: Pronta Entrega)
@@ -66,6 +66,17 @@ const App = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [cart, setCart] = useState([]);
   const [showNotification, setShowNotification] = useState(false);
+  const [heroImageIndex, setHeroImageIndex] = useState(0);
+
+  // Efeito para alternar a imagem do hero
+  useEffect(() => {
+    const imageInterval = setInterval(() => {
+      setHeroImageIndex(prevIndex => (prevIndex + 1) % productsData.length);
+    }, 4000); // Muda a imagem a cada 4 segundos
+
+    // Limpa o intervalo quando o componente é desmontado
+    return () => clearInterval(imageInterval);
+  }, []); // O array vazio faz com que o efeito rode apenas uma vez (na montagem)
 
   // Filtra produtos
   const filteredProducts = activeBrand === 'all' 
@@ -110,7 +121,7 @@ const App = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
-            <div className="flex items-center">
+            <a href="#home" className="flex items-center cursor-pointer">
               <div className="bg-[#8B0000] text-white p-2 rounded-lg mr-2 transform -rotate-3">
                 <ShoppingBag size={24} strokeWidth={2.5} />
               </div>
@@ -122,7 +133,7 @@ const App = () => {
                   Pronta Entrega Salvador
                 </span>
               </div>
-            </div>
+            </a>
 
             {/* Desktop Menu */}
             <div className="hidden md:flex space-x-8 items-center">
@@ -190,11 +201,11 @@ const App = () => {
               Esqueça os prazos longos de catálogo. Aqui na <strong>RedVitoria</strong>, todos os produtos já estão comigo. Pediu hoje, recebe rápido.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <a href="#estoque" className="bg-[#8B0000] text-white px-8 py-4 rounded-lg font-bold hover:bg-[#650000] transition shadow-lg shadow-[#B22222]/30 text-center w-full sm:w-auto">
+            <div className="flex flex-wrap justify-center sm:justify-start items-center gap-4">
+              <a href="#estoque" className="bg-[#8B0000] text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg font-bold hover:bg-[#650000] transition shadow-lg shadow-[#B22222]/30 text-center">
                 Estoque
               </a>
-              <div className="flex items-center gap-3 px-6 py-4 bg-white border border-gray-100 rounded-lg shadow-sm">
+              <div className="flex items-center gap-3 px-4 py-3 sm:px-6 sm:py-4 bg-white border border-gray-100 rounded-lg shadow-sm">
                 <Truck className="text-green-600" />
                 <span className="text-sm font-semibold text-gray-700">
                   Entrega Grátis <br/> <span className="text-xs font-normal text-gray-500">Apenas Salvador/BA</span>
@@ -203,14 +214,21 @@ const App = () => {
             </div>
           </div>
           
-          <div className="md:w-1/2 flex justify-center relative">
+          <div className="hidden md:flex md:w-1/2 justify-center relative">
             <div className="relative">
               <div className="absolute -inset-4 bg-[#B22222]/20 rounded-full blur-xl animate-pulse"></div>
-              <img 
-                src="https://images.unsplash.com/photo-1555529771-7888783a18d3?auto=format&fit=crop&q=80&w=600" 
-                alt="Produtos Pronta Entrega" 
-                className="relative rounded-2xl shadow-2xl object-cover w-72 h-72 md:w-96 md:h-96 border-4 border-white rotate-3"
-              />
+              {/* Slideshow de Imagens */}
+              <div className="relative w-72 h-72 md:w-96 md:h-96">
+                {productsData.map((product, index) => (
+                  <img 
+                    key={product.id}
+                    src={product.image} 
+                    alt={product.name} 
+                    className={`absolute inset-0 rounded-2xl shadow-2xl object-cover w-full h-full border-4 border-white rotate-3 transition-opacity duration-1000 ease-in-out
+                      ${index === heroImageIndex ? 'opacity-100' : 'opacity-0'}`}
+                  />
+                ))}
+              </div>
               {/* Badge Flutuante */}
               <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-xl shadow-xl border border-gray-100 flex items-center gap-3 animate-bounce-slow">
                 <div className="bg-green-100 p-2 rounded-full text-green-700">
@@ -334,10 +352,12 @@ const App = () => {
       {/* Footer */}
       <footer id="contato" className="bg-white pt-12 pb-8 border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
-          <div className="text-center md:text-left">
-            <h2 className="text-xl font-black text-gray-900">RED<span className="text-[#8B0000]">VITORIA</span></h2>
-            <p className="text-sm text-gray-500 mt-1">Sua loja de pronta entrega em Salvador.</p>
-          </div>
+          <a href="#home" className="cursor-pointer">
+            <div className="text-center md:text-left">
+              <h2 className="text-xl font-black text-gray-900">RED<span className="text-[#8B0000]">VITORIA</span></h2>
+              <p className="text-sm text-gray-500 mt-1">Sua loja de pronta entrega em Salvador.</p>
+            </div>
+          </a>
           <button 
             onClick={checkoutWhatsApp}
             className="bg-green-500 text-white px-8 py-3 rounded-full font-bold hover:bg-green-600 transition flex items-center gap-2 shadow-lg shadow-green-100 w-full md:w-auto justify-center"
