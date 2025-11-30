@@ -1,6 +1,6 @@
 import React from 'react';
 import { useInView } from 'react-intersection-observer';
-import { ShoppingBag, ExternalLink } from 'lucide-react';
+import { ShoppingBag, ExternalLink, Send } from 'lucide-react';
 import { incrementMetric } from './firebase'; // 1. Importar a função
 
 const ProductCard = ({ product, brandColors, onAddToCart }) => {
@@ -31,6 +31,11 @@ const ProductCard = ({ product, brandColors, onAddToCart }) => {
   const handleAddToCartClick = () => {
     onAddToCart(product); // Ação original: adiciona ao estado do carrinho
     incrementMetric('addToCartClicks'); // Nova ação: registra o clique no Firebase
+  };
+
+  // Função para registrar o clique no card de anúncio
+  const handleAdClick = () => {
+    incrementMetric('adCardClicks');
   };
 
   return (
@@ -85,12 +90,13 @@ const ProductCard = ({ product, brandColors, onAddToCart }) => {
           <a 
             href={product.link}
             target="_blank"
+            onClick={handleAdClick} // Adiciona o registro do clique
             rel="noopener noreferrer"
             className="w-full mt-auto bg-blue-600 text-white border border-blue-600 hover:bg-blue-700 font-medium h-10 px-4 rounded-full transition-colors duration-300 flex items-center justify-center gap-2 text-sm lowercase"
             title="Visitar Loja Natura"
           >
-            <ExternalLink size={16} />
-            visitar loja
+            <Send size={16} />
+            ver catálogo
           </a>
         ) : (
           <button 

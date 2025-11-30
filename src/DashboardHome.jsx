@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, MessageCircle } from 'lucide-react';
+import { ShoppingBag, MessageCircle, Send } from 'lucide-react';
 import { db } from './firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
@@ -22,6 +22,7 @@ const DashboardHome = () => {
     const [metrics, setMetrics] = useState({
         addToCartClicks: 0,
         whatsappClicks: 0,
+        adCardClicks: 0, // Adiciona a nova métrica
     });
     const [loading, setLoading] = useState(true);
 
@@ -48,6 +49,7 @@ const DashboardHome = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard icon={<ShoppingBag size={24} className="text-gray-600" />} title="Cliques em 'Adicionar à Sacola'" value={loading ? '...' : metrics.addToCartClicks} description="Total de interações no botão de adicionar produto." />
                 <StatCard icon={<MessageCircle size={24} className="text-gray-600" />} title="Cliques em 'Finalizar no WhatsApp'" value={loading ? '...' : metrics.whatsappClicks} description="Total de interações no botão para finalizar via WhatsApp." />
+                <StatCard icon={<Send size={24} className="text-gray-600" />} title="Cliques no Catálogo (Anúncio)" value={loading ? '...' : metrics.adCardClicks} description="Total de cliques no card de anúncio para o catálogo." />
             </div>
         </div>
     );

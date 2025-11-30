@@ -21,7 +21,7 @@ export const provider = new GoogleAuthProvider();
 /**
  * Incrementa um contador de métrica no Firestore.
  * Cria o documento de métricas se ele não existir.
- * @param {'addToCartClicks' | 'whatsappClicks'} metricName O nome do campo a ser incrementado.
+ * @param {'addToCartClicks' | 'whatsappClicks' | 'adCardClicks'} metricName O nome do campo a ser incrementado.
  */
 export const incrementMetric = async (metricName) => {
   const metricsRef = doc(db, 'metrics', 'userInteractions');
