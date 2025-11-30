@@ -1,64 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Menu, X, Star, Truck, MessageCircle, MapPin, Check, Package } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ShoppingBag, Menu, X, Star, Truck, MessageCircle, MapPin, Check, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import LogoSlider from './LogoSlider';
 import FeaturesSection from './FeaturesSection';
 import ProductCard from './ProductCard';
-
-// ===================================================================================
-// 1. DADOS E CONSTANTES
-// ===================================================================================
-
-// Dados simulados dos produtos (Foco: Pronta Entrega)
-const productsData = [
-  {
-    id: 1,
-    name: "Malbec Desodorante Colônia",
-    brand: "boticario",
-    price: 199.90,
-    image: "https://images.unsplash.com/photo-1585399001829-d815ab0275b2?auto=format&fit=crop&q=80&w=600",
-    description: "Em estoque. Fragrância marcante e amadeirada."
-  },
-  {
-    id: 2,
-    name: "Essencial Oud Masculino",
-    brand: "natura",
-    price: 239.90,
-    image: "https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=600",
-    description: "Última unidade. A sofisticação do Oud com a copaíba."
-  },
-  {
-    id: 3,
-    name: "Renew Vitamina C",
-    brand: "avon",
-    price: 89.90,
-    image: "https://images.unsplash.com/photo-1556228852-6d35a585d566?auto=format&fit=crop&q=80&w=600",
-    description: "Disponível para entrega imediata."
-  },
-  {
-    id: 4,
-    name: "Lily Eau de Parfum",
-    brand: "boticario",
-    price: 299.90,
-    image: "https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=600",
-    description: "Original e lacrado. Pronta entrega."
-  },
-  {
-    id: 5,
-    name: "Ekos Castanha Hidratante",
-    brand: "natura",
-    price: 45.90,
-    image: "https://images.unsplash.com/photo-1563804445-534048387309?auto=format&fit=crop&q=80&w=600",
-    description: "Nutrição imediata. Leve agora."
-  },
-  {
-    id: 6,
-    name: "Power Stay Batom Líquido",
-    brand: "avon",
-    price: 39.90,
-    image: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=600",
-    description: "Cores variadas em estoque em Salvador."
-  }
-];
+import { db } from './firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
 const brandColors = {
   boticario: "bg-green-700",
@@ -67,20 +14,37 @@ const brandColors = {
   all: "bg-gray-800"
 };
 
-const HomePage = () => {
+const HomePage = ({ cart, addToCart }) => {
     const [activeBrand, setActiveBrand] = useState('all');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [cart, setCart] = useState([]);
     const [showNotification, setShowNotification] = useState(false);
     const [heroImageIndex, setHeroImageIndex] = useState(0);
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+
+    // Efeito para buscar os produtos do Firestore
+    useEffect(() => {
+      const fetchProducts = async () => {
+        setLoading(true);
+        // Cria uma query para buscar apenas produtos que NÃO estão arquivados
+        const q = query(collection(db, "products"), where("status", "!=", "Arquivado"));
+        const querySnapshot = await getDocs(q);
+        const productsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setProducts(productsList);
+        setLoading(false);
+      };
+      fetchProducts();
+    }, []);
   
     // Efeito para alternar a imagem do hero
     useEffect(() => {
+      if (products.length === 0) return;
       const imageInterval = setInterval(() => {
-        setHeroImageIndex(prevIndex => (prevIndex + 1) % productsData.length);
+        setHeroImageIndex(prevIndex => (prevIndex + 1) % products.length);
       }, 4000);
       return () => clearInterval(imageInterval);
-    }, []);
+    }, [products]);
   
     // Efeito para bloquear o scroll do body quando o menu mobile está aberto
     useEffect(() => {
@@ -91,20 +55,41 @@ const HomePage = () => {
       }
     }, [isMenuOpen]);
   
-    const filteredProducts = activeBrand === 'all' 
-      ? productsData 
-      : productsData.filter(p => p.brand === activeBrand);
+    // Reseta para a primeira página sempre que a marca ativa for alterada
+    useEffect(() => {
+      setCurrentPage(1);
+    }, [activeBrand]);
+
+    const filteredProducts = activeBrand === 'all'
+      ? products
+      : products.filter(p => p.brand === activeBrand);
   
-    const addToCart = (product) => {
-      setCart([...cart, product]);
+    // Lógica da Paginação
+    const productsPerPage = 6;
+    const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+    const indexOfLastProduct = currentPage * productsPerPage;
+    const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+    const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+
+    const handlePageChange = (newPage) => {
+        if (newPage > 0 && newPage <= totalPages) setCurrentPage(newPage);
+    };
+
+    const handleAddToCart = (product) => {
+      addToCart(product);
       setShowNotification(true);
       setTimeout(() => setShowNotification(false), 3000);
-    };
+    };    
   
     const checkoutWhatsApp = () => {
       let message = "Olá RedVitoria! Gostaria de reservar os itens da Pronta Entrega:\n\n";
       cart.forEach(item => {
-        message += `- ${item.name} (${item.brand}): R$ ${item.price.toFixed(2)}\n`;
+        // Converte o preço de string para número antes de formatar
+        const priceNumber = typeof item.price === 'string' 
+          ? parseFloat(item.price.replace('R$', '').replace(',', '.')) 
+          : item.price;
+
+        message += `- ${item.name} (${item.brand}): R$ ${priceNumber.toFixed(2)}\n`;
       });
       const total = cart.reduce((acc, item) => acc + item.price, 0);
       message += `\nTotal: R$ ${total.toFixed(2)}`;
@@ -166,31 +151,28 @@ const HomePage = () => {
                 <a href="#estoque" onClick={(e) => handleNavClick(e, '#estoque')} className="hover:text-[#8B0000] transition font-medium">Estoque Real</a>
                 <a href="#contato" onClick={(e) => handleNavClick(e, '#contato')} className="hover:text-[#8B0000] transition font-medium">Falar no Zap</a>
                 
-                <button 
-                  onClick={checkoutWhatsApp}
-                  className="relative p-2 hover:bg-[#B22222]/10 rounded-full transition group"
-                >
+                <Link to="/carrinho" className="relative p-2 hover:bg-[#B22222]/10 rounded-full transition group">
                   <ShoppingBag className="text-gray-700 group-hover:text-[#8B0000] transition" />
                   {cart.length > 0 && (
                     <span className="absolute top-0 right-0 bg-[#B22222] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold">
-                      {cart.length}
+                      {cart.reduce((acc, item) => acc + item.quantity, 0)}
                     </span>
                   )}
-                </button>
+                </Link>
               </div>
   
               <div className="md:hidden flex items-center gap-4">
-                <button 
-                  onClick={checkoutWhatsApp}
+                <Link 
+                  to="/carrinho"
                   className="relative p-2"
                 >
                   <ShoppingBag className="text-gray-700" />
                   {cart.length > 0 && (
                     <span className="absolute top-0 right-0 bg-[#8B0000] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                      {cart.length}
+                      {cart.reduce((acc, item) => acc + item.quantity, 0)}
                     </span>
                   )}
-                </button>
+                </Link>
                 <button onClick={() => setIsMenuOpen(true)} className="p-2">
                   <Menu />
                 </button>
@@ -216,7 +198,10 @@ const HomePage = () => {
               </p>
               
               <div className="flex flex-wrap justify-center sm:justify-start items-center gap-4">
-                <a href="#estoque" className="bg-[#8B0000] text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg font-bold hover:bg-[#650000] transition shadow-lg shadow-[#B22222]/30 text-center">
+                <a 
+                  href="#estoque" 
+                  onClick={(e) => handleNavClick(e, '#estoque')} 
+                  className="bg-[#8B0000] text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg font-bold hover:bg-[#650000] transition shadow-lg shadow-[#B22222]/30 text-center">
                   Estoque
                 </a>
                 <div className="flex items-center gap-3 px-4 py-3 sm:px-6 sm:py-4 bg-white border border-gray-100 rounded-lg shadow-sm">
@@ -230,9 +215,9 @@ const HomePage = () => {
             
             <div className="hidden md:flex md:w-1/2 justify-center relative">
               <div className="relative">
-                <div className="absolute -inset-4 bg-[#B22222]/20 rounded-full blur-xl animate-pulse"></div>
+                <div className="absolute -inset-4 bg-[#B22222]/20 rounded-full blur-xl"></div>
                 <div className="relative w-72 h-72 md:w-96 md:h-96">
-                  {productsData.map((product, index) => (
+                  {products.map((product, index) => (
                     <img 
                       key={product.id}
                       src={product.image} 
@@ -295,15 +280,35 @@ const HomePage = () => {
             </div>
   
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
-                <ProductCard 
-                  key={product.id}
-                  product={product}
-                  brandColors={brandColors}
-                  onAddToCart={addToCart}
-                />
-              ))}
+              {loading ? (
+                <p className="col-span-full text-center py-8 text-gray-500">Carregando vitrine...</p>
+              ) : (
+                currentProducts.map((product) => (
+                  <ProductCard 
+                    key={product.id}
+                    product={product}
+                    brandColors={brandColors}
+                    onAddToCart={handleAddToCart}
+                  />
+                ))
+              )}
             </div>
+
+            {/* Pagination Controls for HomePage */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center mt-8 gap-4">
+                  <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="p-3 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                      <ChevronLeft size={20} />
+                  </button>
+                  <span className="text-sm font-semibold text-gray-700">
+                      Página {currentPage} de {totalPages}
+                  </span>
+                  <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-3 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                      <ChevronRight size={20} />
+                  </button>
+              </div>
+            )}
+
           </div>
         </section>
   

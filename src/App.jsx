@@ -1,14 +1,54 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import HomePage from './HomePage';
 import LoginPage from './LoginPage';
+import DashboardPage from './DashboardPage.jsx'; // Importando o novo dashboard com a extensão
+import DashboardHome from './DashboardHome.jsx';
+import ProductsPage from './ProductsPage.jsx';
+import CartPage from './CartPage.jsx';
+
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+};
 
 const App = () => {
+  const [cart, setCart] = useState([]);
+
+  const addToCart = (product) => {
+    setCart(prevCart => {
+      const existingItem = prevCart.find(item => item.id === product.id);
+      if (existingItem) {
+        return prevCart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prevCart, { ...product, quantity: 1 }];
+    });
+  };
+
+  const removeFromCart = (productId) => {
+    setCart(prevCart => prevCart.filter(item => item.id !== productId));
+  };
+
+  const updateQuantity = (productId, delta) => {
+    setCart(prevCart => prevCart.map(item => item.id === productId ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item).filter(item => item.quantity > 0));
+  };
+
+  const clearCart = () => setCart([]);
+
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HomePage cart={cart} addToCart={addToCart} />} />
+        <Route path="/carrinho" element={<CartPage cart={cart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} clearCart={clearCart} />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/dashboard" element={<DashboardPage />}>
+          <Route index element={<DashboardHome />} />
+          <Route path="produtos" element={<ProductsPage />} />
+        </Route>
       </Routes>
     </Router>
   );

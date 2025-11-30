@@ -1,6 +1,6 @@
 import React from 'react';
 import { auth, provider } from './firebase'; // Importaremos do firebase.js
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, signOut } from "firebase/auth"; // 1. Importar signOut
 import { ShoppingBag } from 'lucide-react';
 
 const LoginPage = () => {
@@ -8,12 +8,21 @@ const LoginPage = () => {
   const handleGoogleLogin = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
-      // O usuário está logado.
       const user = result.user;
-      console.log("Usuário logado com sucesso:", user);
-      alert(`Bem-vindo(a), ${user.displayName}!`);
-      // Aqui você pode redirecionar o usuário para uma página de dashboard, por exemplo.
-      // window.location.href = '/dashboard';
+      const ADMIN_UID = "JC6P8EQrLBOc9fzKm3XdXkKGb0i1";
+
+      // 2. Verificar se o UID do usuário é o do administrador
+      if (user.uid === ADMIN_UID) {
+        // Se for o admin, permite o login e redireciona
+        console.log("Administrador logado com sucesso:", user);
+        alert(`Bem-vindo(a), Admin ${user.displayName}!`);
+        window.location.href = '/dashboard';
+      } else {
+        // Se não for o admin, exibe um alerta e faz o logout
+        alert("Acesso restrito. Esta conta não tem permissão para entrar no painel.");
+        await signOut(auth); // Desconecta o usuário não autorizado
+      }
+
     } catch (error) {
       console.error("Erro ao fazer login com o Google:", error);
       alert("Houve um erro ao tentar fazer o login. Tente novamente.");
