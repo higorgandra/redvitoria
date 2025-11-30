@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore, doc, updateDoc, increment, setDoc } from "firebase/firestore";
+import { getAuth, GoogleAuthProvider } from "firebase/auth"; // Lembre-se de proteger suas chaves em um ambiente de produção
+import { getFirestore, doc, updateDoc, increment, setDoc, collection, addDoc, serverTimestamp, getDoc, getDocs, query, orderBy } from "firebase/firestore";
 
 // Your web app's Firebase configuration - Hardcoded for testing
 const firebaseConfig = {
@@ -45,5 +45,69 @@ export const incrementMetric = async (metricName) => {
     } else {
       console.error("Erro ao incrementar métrica:", error);
     }
+  }
+};
+
+/**
+ * Registra uma visita ao site com informações de geolocalização do usuário.
+ * Utiliza uma API externa para obter cidade e país a partir do IP.
+ */
+export const trackVisit = async () => {
+  // Evita rastrear múltiplas visitas na mesma sessão de navegação
+  if (sessionStorage.getItem('visitTracked')) {
+    return;
+  }
+
+  try {
+    const response = await fetch('http://ip-api.com/json/?fields=country,city');
+    if (!response.ok) {
+      throw new Error('A resposta da API de geolocalização não foi OK.');
+    }
+    const data = await response.json();
+
+    const visitsCollectionRef = collection(db, 'visits');
+    await addDoc(visitsCollectionRef, {
+      city: data.city || 'Unknown',
+      country: data.country || 'Unknown',
+      timestamp: serverTimestamp()
+    });
+
+    // Marca que a visita já foi registrada nesta sessão
+    sessionStorage.setItem('visitTracked', 'true');
+  } catch (error) {
+    console.error("Erro ao registrar visita:", error);
+  }
+};
+
+/**
+ * Busca todos os dados de métricas do Firestore, incluindo interações e visitas.
+ * @returns {Promise<{interactions: object, visits: Array<object>}>} Uma promessa que resolve para um objeto com as métricas.
+ */
+export const getMetrics = async () => {
+  try {
+    // Busca as métricas de interação (cliques)
+    const metricsRef = doc(db, 'metrics', 'userInteractions');
+    const metricsSnap = await getDoc(metricsRef);
+    const interactions = metricsSnap.exists() ? metricsSnap.data() : {};
+
+    // Busca os registros de visitas
+    const visitsCollectionRef = collection(db, 'visits');
+    const q = query(visitsCollectionRef, orderBy('timestamp', 'desc'));
+    const visitsSnap = await getDocs(q);
+    
+    const visits = [];
+    visitsSnap.forEach((doc) => {
+      visits.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+
+    return { interactions, visits };
+
+  } catch (error) {
+    console.error("Erro ao buscar métricas:", error);
+    // Retorna um objeto vazio em caso de erro para não quebrar a aplicação
+    return { interactions: {}, visits: [] };
   }
 };

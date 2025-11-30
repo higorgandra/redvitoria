@@ -60,9 +60,17 @@ const HomePage = ({ cart, addToCart }) => {
       setCurrentPage(1);
     }, [activeBrand]);
 
-    const filteredProducts = activeBrand === 'all'
+    // Filtra os produtos pela marca selecionada
+    const brandFilteredProducts = activeBrand === 'all'
       ? products
       : products.filter(p => p.brand === activeBrand);
+
+    // Reordena a lista para que o card de anúncio seja sempre o último
+    const filteredProducts = [...brandFilteredProducts].sort((a, b) => {
+      if (a.status === 'Anúncio') return 1; // Move 'a' para o final
+      if (b.status === 'Anúncio') return -1; // Move 'b' para o final (deixando 'a' antes)
+      return 0; // Mantém a ordem para os outros produtos
+    });
   
     // Lógica da Paginação
     const productsPerPage = 12;
@@ -113,26 +121,23 @@ const HomePage = ({ cart, addToCart }) => {
   
         <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-20">
-              <a href="#home" onClick={(e) => handleNavClick(e, '#home')} className="flex items-center cursor-pointer">
-                <div className="bg-[#8B0000] text-white p-2 rounded-lg mr-2 transform -rotate-3">
-                  <ShoppingBag size={24} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-black text-gray-900 tracking-tight">
-                    RED<span className="text-[#8B0000]">VITORIA</span>
-                  </h1>
-                  <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase block -mt-1">
-                    Pronta Entrega Salvador
-                  </span>
-                </div>
-              </a>
+            <div className="relative flex justify-center items-center h-20">
+              {/* Logo Centralizado */}
+              <div className="absolute left-1/2 -translate-x-1/2">
+                <a href="#home" onClick={(e) => handleNavClick(e, '#home')} className="flex items-center cursor-pointer">
+                  <div className="text-center">
+                    <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+                      <span className="text-[#8B0000]">RED</span>VITORIA
+                    </h1>
+                    <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase block -mt-1">
+                      Pronta Entrega Salvador
+                    </span>
+                  </div>
+                </a>
+              </div>
   
-              <div className="hidden md:flex space-x-8 items-center">
-                <a href="#home" onClick={(e) => handleNavClick(e, '#home')} className="hover:text-[#8B0000] transition font-medium">Início</a>
-                <a href="#estoque" onClick={(e) => handleNavClick(e, '#estoque')} className="hover:text-[#8B0000] transition font-medium">Estoque Real</a>
-                <a href="#contato" onClick={(e) => handleNavClick(e, '#contato')} className="hover:text-[#8B0000] transition font-medium">Falar no Zap</a>
-                
+              {/* Ícone do Carrinho à Direita */}
+              <div className="absolute right-0 flex items-center">
                 <Link to="/carrinho" className="relative p-2 hover:bg-[#B22222]/10 rounded-full transition group">
                   <ShoppingBag className="text-gray-700 group-hover:text-[#8B0000] transition" />
                   {cart.length > 0 && (
@@ -141,23 +146,6 @@ const HomePage = ({ cart, addToCart }) => {
                     </span>
                   )}
                 </Link>
-              </div>
-  
-              <div className="md:hidden flex items-center gap-4">
-                <Link 
-                  to="/carrinho"
-                  className="relative p-2"
-                >
-                  <ShoppingBag className="text-gray-700" />
-                  {cart.length > 0 && (
-                    <span className="absolute top-0 right-0 bg-[#8B0000] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                      {cart.reduce((acc, item) => acc + item.quantity, 0)}
-                    </span>
-                  )}
-                </Link>
-                <button onClick={() => setIsMenuOpen(true)} className="p-2">
-                  <Menu />
-                </button>
               </div>
             </div>
           </div>
@@ -222,20 +210,6 @@ const HomePage = ({ cart, addToCart }) => {
             </div>
           </div>
         </section>
-  
-        {isMenuOpen && (
-          <div className="md:hidden fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
-            <button 
-              onClick={() => setIsMenuOpen(false)} 
-              className="absolute top-7 right-4 p-2"
-            >
-              <X size={28} />
-            </button>
-            <a href="#home" onClick={(e) => handleNavClick(e, '#home')} className="text-2xl font-bold text-gray-700 hover:text-[#8B0000] py-4">Início</a>
-            <a href="#estoque" onClick={(e) => handleNavClick(e, '#estoque')} className="text-2xl font-bold text-gray-700 hover:text-[#8B0000] py-4">Estoque Real</a>
-            <a href="#contato" onClick={(e) => handleNavClick(e, '#contato')} className="text-2xl font-bold text-gray-700 hover:text-[#8B0000] py-4">Falar no Zap</a>
-          </div>
-        )}
   
         <section id="estoque" className="py-12 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4">
