@@ -65,7 +65,7 @@ const HomePage = ({ cart, addToCart }) => {
       : products.filter(p => p.brand === activeBrand);
   
     // Lógica da Paginação
-    const productsPerPage = 6;
+    const productsPerPage = 12;
     const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
     const indexOfLastProduct = currentPage * productsPerPage;
     const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
