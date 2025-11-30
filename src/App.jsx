@@ -6,6 +6,7 @@ import DashboardPage from './DashboardPage.jsx'; // Importando o novo dashboard 
 import DashboardHome from './DashboardHome.jsx';
 import ProductsPage from './ProductsPage.jsx';
 import CartPage from './CartPage.jsx';
+import ProtectedRoute from './ProtectedRoute.jsx'; // 1. Importar o componente
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -73,7 +74,14 @@ const App = () => {
         <Route path="/" element={<HomePage cart={cart} addToCart={addToCart} />} />
         <Route path="/carrinho" element={<CartPage cart={cart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} clearCart={clearCart} />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/dashboard" element={<DashboardPage />}>
+        {/* 2. Envolver a rota do Dashboard com o ProtectedRoute */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }>
           <Route index element={<DashboardHome />} />
           <Route path="produtos" element={<ProductsPage />} />
         </Route>

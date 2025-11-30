@@ -109,6 +109,18 @@ const ProductRow = ({ product, view, onArchiveClick, onRestore, onEditClick, onD
     );
 };
 
+const initialProductState = {
+    name: '',
+    brand: 'natura', // Valor padrão
+    price: 0,
+    fullPrice: 0,
+    stock: 1,
+    image: '',
+    sku: '',
+    status: 'Ativo',
+    discountPercentage: '',
+};
+
 const ProductsPage = () => {
     const [view, setView] = useState('active'); // 'active' ou 'archived'
     const [searchQuery, setSearchQuery] = useState('');
@@ -118,8 +130,10 @@ const ProductsPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [isBrandPopupOpen, setIsBrandPopupOpen] = useState(false);
     const [archiveConfirmId, setArchiveConfirmId] = useState(null);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false); // Estado para o modal de adição
     const [editingProduct, setEditingProduct] = useState(null); // Produto sendo editado
     const [editFormData, setEditFormData] = useState({}); // Dados do formulário de edição
+    const [newProductData, setNewProductData] = useState(initialProductState); // Estado para o novo produto
     const [toastMessage, setToastMessage] = useState(null); // { type: 'success' | 'error', message: string }
     const [activeDropdownId, setActiveDropdownId] = useState(null); // Controla qual dropdown de ações está aberto
     const [deleteConfirmId, setDeleteConfirmId] = useState(null); // Controla o modal de exclusão
@@ -308,6 +322,11 @@ const ProductsPage = () => {
         });
     };
 
+    const handleAddProductClick = () => {
+        setNewProductData(initialProductState); // Reseta o formulário para o estado inicial
+        setIsAddModalOpen(true);
+    };
+
     const handleEditFormChange = (e) => {
         const { name, value } = e.target;
         const newFormData = { ...editFormData, [name]: value };
@@ -331,6 +350,31 @@ const ProductsPage = () => {
         }
 
         setEditFormData(newFormData);
+    };
+
+    const handleNewProductChange = (e) => {
+        const { name, value } = e.target;
+        const newFormData = { ...newProductData, [name]: value };
+
+        const fullPrice = parseFloat(newFormData.fullPrice);
+        const price = parseFloat(newFormData.price);
+        const discountPercentage = parseFloat(newFormData.discountPercentage);
+
+        if (name === 'discountPercentage') {
+            if (!isNaN(discountPercentage) && !isNaN(fullPrice) && fullPrice > 0) {
+                const newPrice = fullPrice * (1 - discountPercentage / 100);
+                newFormData.price = newPrice.toFixed(2);
+            }
+        } else if (name === 'fullPrice' || name === 'price') {
+            if (!isNaN(fullPrice) && !isNaN(price) && fullPrice > price) {
+                const newDiscount = ((fullPrice - price) / fullPrice) * 100;
+                newFormData.discountPercentage = newDiscount.toFixed(0);
+            } else {
+                newFormData.discountPercentage = '';
+            }
+        }
+
+        setNewProductData(newFormData);
     };
 
     const calculateDiscount = (fullPrice, price) => {
@@ -378,6 +422,65 @@ const ProductsPage = () => {
         } catch (error) {
             console.error("Erro ao atualizar produto: ", error);
             setToastMessage({ type: 'error', message: 'Não foi possível atualizar o produto.' });
+        }
+    };
+
+    const handleAddNewProduct = async () => {
+        // Validação dos campos obrigatórios
+        if (!newProductData.name.trim()) {
+            setToastMessage({ type: 'error', message: 'O nome do produto é obrigatório.' });
+            return;
+        }
+        if (!newProductData.image.trim()) {
+            setToastMessage({ type: 'error', message: 'O link da imagem é obrigatório.' });
+            return;
+        }
+        if (!newProductData.fullPrice || parseFloat(newProductData.fullPrice) <= 0) {
+            setToastMessage({ type: 'error', message: 'O "Valor Cheio" é obrigatório e deve ser maior que zero.' });
+            return;
+        }
+        if (newProductData.discountPercentage === '' || isNaN(parseFloat(newProductData.discountPercentage))) {
+            setToastMessage({ type: 'error', message: 'O campo "Desconto" é obrigatório (pode ser 0).' });
+            return;
+        }
+        if (!newProductData.price || parseFloat(newProductData.price) <= 0) {
+            setToastMessage({ type: 'error', message: 'O "Preço Final" é obrigatório e deve ser maior que zero.' });
+            return;
+        }
+
+        try {
+            // --- GERAÇÃO AUTOMÁTICA DO SKU ---
+            // Pega as 3 primeiras letras da marca, em maiúsculas.
+            const brandPrefix = newProductData.brand.substring(0, 3).toUpperCase();
+            // Pega os últimos 4 dígitos do timestamp atual para criar um número aleatório.
+            const uniqueNumber = Date.now().toString().slice(-4);
+            const generatedSku = `${brandPrefix}-${uniqueNumber}`;
+            // ------------------------------------
+
+            const stock = parseInt(newProductData.stock, 10);
+            const productData = {
+                ...newProductData,
+                price: parseFloat(newProductData.price),
+                fullPrice: parseFloat(newProductData.fullPrice),
+                stock: isNaN(stock) ? 0 : stock,
+                sku: generatedSku, // Adiciona o SKU gerado ao produto
+                discountPercentage: parseFloat(newProductData.discountPercentage) || 0,
+                status: (isNaN(stock) || stock === 0) ? 'Sem Estoque' : 'Ativo',
+                createdAt: serverTimestamp()
+            };
+
+            const docRef = await addDoc(collection(db, "products"), productData);
+
+            // Adiciona o novo produto ao estado local para atualização instantânea da UI
+            const newProductWithId = { id: docRef.id, ...productData };
+            setProducts(prevProducts => [newProductWithId, ...prevProducts]);
+
+            setIsAddModalOpen(false); // Fecha o modal
+            setToastMessage({ type: 'success', message: 'Produto adicionado com sucesso!' });
+
+        } catch (error) {
+            console.error("Erro ao adicionar novo produto: ", error);
+            setToastMessage({ type: 'error', message: 'Não foi possível adicionar o produto.' });
         }
     };
 
@@ -486,7 +589,10 @@ const ProductsPage = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2 sm:mb-0">Produtos</h2>
                 <div className="flex gap-2">
-                    <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
+                    <button 
+                        onClick={handleAddProductClick}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50"
+                    >
                         <PlusCircle size={16} />
                         Adicionar Produto
                     </button>
@@ -689,6 +795,69 @@ const ProductsPage = () => {
                                 className="px-8 py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700"
                             >
                                 Sim
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Product Modal */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                        {/* Modal Header */}
+                        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                            <h3 className="font-bold text-xl text-gray-900">Adicionar Novo Produto</h3>
+                            <button onClick={() => setIsAddModalOpen(null)} className="p-2 rounded-full hover:bg-gray-100">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6 overflow-y-auto">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="md:col-span-2">
+                                    <label className="text-sm font-medium text-gray-700">Nome do Produto</label>
+                                    <input type="text" name="name" value={newProductData.name} onChange={handleNewProductChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="text-sm font-medium text-gray-700">Link da Imagem</label>
+                                    <input type="text" name="image" value={newProductData.image} onChange={handleNewProductChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" placeholder="https://..." />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700">Marca</label>
+                                    <select name="brand" value={newProductData.brand} onChange={handleNewProductChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50 capitalize">
+                                        <option value="boticario">Boticário</option>
+                                        <option value="natura">Natura</option>
+                                        <option value="avon">Avon</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700">Estoque</label>
+                                    <input type="number" name="stock" value={newProductData.stock} onChange={handleNewProductChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700">Valor Cheio (R$)</label> 
+                                    <input type="number" name="fullPrice" value={newProductData.fullPrice} onChange={handleNewProductChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" placeholder="Ex: 100.00" />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700">Desconto (%)</label>
+                                    <input type="number" name="discountPercentage" value={newProductData.discountPercentage} onChange={handleNewProductChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" placeholder="Ex: 20" />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="text-sm font-medium text-gray-700">Preço Final de Venda (R$)</label>
+                                    <input type="number" name="price" value={newProductData.price} onChange={handleNewProductChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" placeholder="Ex: 79.90" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="flex justify-end items-center gap-4 p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+                            <button onClick={() => setIsAddModalOpen(false)} className="px-6 py-3 rounded-lg bg-gray-100 text-gray-800 font-semibold hover:bg-gray-200">
+                                Cancelar
+                            </button>
+                            <button onClick={handleAddNewProduct} className="px-6 py-3 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700">
+                                Adicionar Produto
                             </button>
                         </div>
                     </div>

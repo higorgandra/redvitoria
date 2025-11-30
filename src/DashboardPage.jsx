@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { LayoutDashboard, ShoppingCart, Package, Users, Settings, Bell, ChevronDown, Search, Menu } from 'lucide-react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { LayoutDashboard, Package, ChevronDown, Menu, LogOut } from 'lucide-react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { auth } from './firebase';
+import { signOut } from 'firebase/auth';
 import { useAuth } from './useAuth'; // O hook useAuth pode ser removido se 'isAdmin' não for mais usado nesta página.
 import DashboardHome from './DashboardHome'; // Importar o novo componente
 
@@ -47,7 +49,30 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
 
 const DashboardPage = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const location = useLocation(); // <-- CORREÇÃO: Adicionar esta linha
+    const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+    const location = useLocation();
+    const navigate = useNavigate();
+    const dropdownRef = useRef(null);
+
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            navigate('/login');
+        } catch (error) {
+            console.error("Erro ao fazer logout:", error);
+        }
+    };
+
+    // Efeito para fechar o dropdown ao clicar fora
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsProfileDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [dropdownRef]);
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
@@ -61,27 +86,29 @@ const DashboardPage = () => {
                             </button>
                         </div>
 
-                        <div className="flex items-center gap-6">
-                            <div className="hidden md:flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2">
-                                <Search size={18} className="text-gray-400" />
-                                <input type="text" placeholder="Buscar pedidos, produtos..." className="text-sm bg-transparent focus:outline-none" />
-                            </div>
-
-                            <button className="text-gray-500 hover:text-gray-800 relative">
-                                <Bell size={22} />
-                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                        <div className="relative" ref={dropdownRef}>
+                            <button onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} className="flex items-center gap-3 cursor-pointer p-1 rounded-lg hover:bg-gray-100">
+                                <img src="https://i.postimg.cc/RFWS3s7N/571330743-18534298507005557-1264770583319279576-n.jpg" alt="Admin" className="w-9 h-9 rounded-full" />
+                                <div className="hidden sm:block text-left">
+                                    <p className="text-sm font-semibold text-gray-800">Vitória Mota</p>
+                                    <p className="text-xs text-gray-500">Administradora</p>
+                                </div>
+                                <ChevronDown size={20} className={`hidden sm:block text-gray-500 transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
                             </button>
 
-                            <div className="flex items-center gap-3">
-                                <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Admin" className="w-10 h-10 rounded-full" />
-                                <div className="hidden sm:block">
-                                    <p className="text-sm font-semibold text-gray-800">Vitória</p>
-                                    <p className="text-xs text-gray-500">Admin</p>
+                            {isProfileDropdownOpen && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-20 border border-gray-100 animate-fade-in-down">
+                                    <div className="p-2">
+                                        <button
+                                            onClick={handleLogout}
+                                            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 rounded-md hover:bg-red-50"
+                                        >
+                                            <LogOut size={16} />
+                                            <span>Sair</span>
+                                        </button>
+                                    </div>
                                 </div>
-                                <button className="hidden sm:block text-gray-500 hover:text-gray-800">
-                                    <ChevronDown size={20} />
-                                </button>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </header>
