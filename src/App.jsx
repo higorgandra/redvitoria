@@ -18,6 +18,34 @@ const ScrollToTop = () => {
 const App = () => {
   const [cart, setCart] = useState([]);
 
+  // Efeito para adicionar o Schema.org (JSON-LD) para SEO local
+  useEffect(() => {
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "HealthAndBeautyBusiness",
+      "name": "RedVitoria Cosméticos",
+      "description": "Sua loja de pronta entrega de cosméticos Avon, Natura e O Boticário em Salvador, BA. Viu, gostou, pegou. Sem espera.",
+      // TODO: Substitua pela URL completa da sua logo quando estiver online. Ex: "https://www.redvitoria.com.br/logo.png"
+      "image": "", 
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Salvador",
+        "addressRegion": "BA",
+        "addressCountry": "BR"
+      },
+      "priceRange": "$$"
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.innerHTML = JSON.stringify(schema);
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
+
   const addToCart = (product) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id);
