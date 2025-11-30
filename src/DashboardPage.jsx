@@ -1,24 +1,16 @@
 import React, { useState } from 'react';
 import { LayoutDashboard, ShoppingCart, Package, Users, Settings, Bell, ChevronDown, Search, Menu } from 'lucide-react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { useAuth } from './useAuth'; // 1. Importar o hook
+import { useAuth } from './useAuth'; // O hook useAuth pode ser removido se 'isAdmin' não for mais usado nesta página.
+import DashboardHome from './DashboardHome'; // Importar o novo componente
 
 const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
     const location = useLocation();
-    const { isAdmin } = useAuth(); // 2. Usar o hook para verificar se é admin
 
-    let menuItems = [
+    const menuItems = [
         { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard' },
-        { icon: <ShoppingCart size={20} />, label: 'Pedidos', path: '/dashboard/pedidos' },
         { icon: <Package size={20} />, label: 'Produtos', path: '/dashboard/produtos' },
-        { icon: <Users size={20} />, label: 'Clientes', path: '/dashboard/clientes' },
-        { icon: <Settings size={20} />, label: 'Configurações', path: '/dashboard/configuracoes' }
     ];
-
-    // 3. Adicionar o item de menu condicionalmente
-    if (isAdmin) {
-        menuItems.splice(4, 0, { icon: <Users size={20} />, label: 'UPLOAD', path: '/dashboard/upload' });
-    }
 
     return <>
         <div className={`fixed inset-y-0 left-0 bg-white w-64 p-6 z-30 transform transition-transform duration-300 ease-in-out border-r border-gray-100 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:fixed`}>
@@ -92,7 +84,11 @@ const DashboardPage = () => {
                     </div>
                 </header>
 
-                <Outlet />
+                {location.pathname === '/dashboard' ? (
+                    <DashboardHome />
+                ) : (
+                    <Outlet />
+                )}
             </main>
         </div>
     );

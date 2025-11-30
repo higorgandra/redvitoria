@@ -1,6 +1,7 @@
 import React from 'react';
 import { useInView } from 'react-intersection-observer';
 import { ShoppingBag, ExternalLink } from 'lucide-react';
+import { incrementMetric } from './firebase'; // 1. Importar a função
 
 const ProductCard = ({ product, brandColors, onAddToCart }) => {
   const { ref, inView } = useInView({
@@ -25,6 +26,12 @@ const ProductCard = ({ product, brandColors, onAddToCart }) => {
   const fullPrice = getNumericPrice(product.fullPrice || price * 2); // Usa fullPrice ou um valor calculado
   const discount = fullPrice > price ? Math.round(((fullPrice - price) / fullPrice) * 100) : 0;
   const isAd = product.status === 'Anúncio';
+
+  // 2. Criar uma função que chama as duas ações
+  const handleAddToCartClick = () => {
+    onAddToCart(product); // Ação original: adiciona ao estado do carrinho
+    incrementMetric('addToCartClicks'); // Nova ação: registra o clique no Firebase
+  };
 
   return (
     <div
@@ -87,7 +94,7 @@ const ProductCard = ({ product, brandColors, onAddToCart }) => {
           </a>
         ) : (
           <button 
-            onClick={() => onAddToCart(product)}
+            onClick={handleAddToCartClick} // 3. Usar a nova função no botão
             className="w-full mt-auto bg-transparent text-gray-800 border border-gray-800 hover:bg-gray-800 hover:text-white font-medium h-10 px-4 rounded-full transition-colors duration-300 flex items-center justify-center gap-2 text-sm lowercase"
             title="adicionar à sacola"
           >

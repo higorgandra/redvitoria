@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Trash2, Plus, Minus, ArrowLeft, MessageCircle } from 'lucide-react';
+import { incrementMetric } from './firebase'; // 1. Importar a função
 
 const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const total = subtotal; // Assumindo frete grátis por enquanto
+  const phone = "5571992293834"; // Centralizando o número de telefone
 
   const checkoutWhatsApp = () => {
     if (cart.length === 0) {
@@ -19,8 +21,10 @@ const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
     message += `\n*Total do Pedido: ${formatPrice(total)}*`;
     message += `\n\nAguardo para combinar a entrega.`;
     
-    const phone = "5571992293834";
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+
+    // 2. Registrar o clique no Firebase
+    incrementMetric('whatsappClicks');
   };
 
   const formatPrice = (price) => {
