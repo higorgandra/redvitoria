@@ -47,6 +47,8 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
 
 const DashboardPage = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const location = useLocation(); // <-- CORREÇÃO: Adicionar esta linha
+
     return (
         <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
             <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />

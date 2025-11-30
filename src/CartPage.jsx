@@ -7,7 +7,7 @@ const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const total = subtotal; // Assumindo frete grátis por enquanto
-  const phone = "5571992293834"; // Centralizando o número de telefone
+  const phone = "5571992293834"; // Número de telefone centralizado
 
   const checkoutWhatsApp = () => {
     if (cart.length === 0) {

@@ -25,14 +25,24 @@ const ProductRow = ({ product, view, onArchiveClick, onRestore, onEditClick, onD
         }
     };
 
+    // Determina o status real com base no estoque, exceto para 'Anúncio' e 'Arquivado'.
+    const getEffectiveStatus = (product) => {
+        if (product.status === 'Anúncio' || product.status === 'Arquivado') {
+            return product.status;
+        }
+        return product.stock > 0 ? 'Ativo' : 'Sem Estoque';
+    };
+
+    const effectiveStatus = getEffectiveStatus(product);
+
     return (
         <tr className="border-b border-gray-200 hover:bg-gray-50">
             <td className="p-4">
                 <div className="flex items-center gap-4">
                     <img src={product.image} alt={product.name} className="w-12 h-12 object-contain rounded-md bg-gray-100" />
                     <div>
-                        <p className="font-semibold text-gray-800">{product.name}</p>
-                        <p className="text-xs text-gray-500">{product.sku}</p>
+                        <p className="font-semibold text-gray-800 line-clamp-2">{product.name}</p>
+                        <p className="text-xs text-gray-500">{product.sku || 'N/A'}</p>
                     </div>
                 </div>
             </td>
@@ -46,8 +56,8 @@ const ProductRow = ({ product, view, onArchiveClick, onRestore, onEditClick, onD
                 {product.status === 'Anúncio' ? 'AD' : product.stock}
             </td>
             <td className="p-4">
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusClass(product.status)}`}>
-                    {product.status}
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusClass(effectiveStatus)}`}>
+                    {effectiveStatus}
                 </span>
             </td>
             <td className="p-4">

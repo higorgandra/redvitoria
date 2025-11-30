@@ -80,25 +80,7 @@ const HomePage = ({ cart, addToCart }) => {
       setShowNotification(true);
       setTimeout(() => setShowNotification(false), 3000);
     };    
-  
-    const checkoutWhatsApp = () => {
-      let message = "Olá RedVitoria! Gostaria de reservar os itens da Pronta Entrega:\n\n";
-      cart.forEach(item => {
-        // Converte o preço de string para número antes de formatar
-        const priceNumber = typeof item.price === 'string' 
-          ? parseFloat(item.price.replace('R$', '').replace(',', '.')) 
-          : item.price;
 
-        message += `- ${item.name} (${item.brand}): R$ ${priceNumber.toFixed(2)}\n`;
-      });
-      const total = cart.reduce((acc, item) => acc + item.price, 0);
-      message += `\nTotal: R$ ${total.toFixed(2)}`;
-      message += `\n\nSou de Salvador e gostaria de combinar a entrega grátis!`;
-      
-      const phone = "5571999999999";
-      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
-    };
-  
     const handleNavClick = (event, targetId) => {
       event.preventDefault();
       const targetElement = document.querySelector(targetId);
@@ -317,20 +299,13 @@ const HomePage = ({ cart, addToCart }) => {
         <FeaturesSection />
   
         <footer id="contato" className="bg-white pt-12 border-t border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
+          <div className="max-w-7xl mx-auto px-4 flex justify-center text-center mb-8">
             <a href="#home" onClick={(e) => handleNavClick(e, '#home')} className="cursor-pointer">
-              <div className="text-center md:text-left">
+              <div>
                 <h2 className="text-xl font-black text-gray-900">RED<span className="text-[#B22222]">VITORIA</span></h2>
                 <p className="text-sm text-gray-500 mt-1">Sua loja de pronta entrega em Salvador.</p>
               </div>
             </a>
-            <button 
-              onClick={checkoutWhatsApp}
-              className="bg-green-500 text-white px-8 py-3 rounded-full font-bold hover:bg-green-600 transition flex items-center gap-2 shadow-lg shadow-green-100 w-full md:w-auto justify-center"
-            >
-              <MessageCircle size={20} />
-              Chamar no WhatsApp
-            </button>
           </div>
           <div className="bg-red-100 text-center text-red-900 text-xs py-6 px-4">
             <p>&copy; {copyrightYear} RedVitoria. Revendedora oficial independente Avon, Natura e O Boticário. Entrega grátis válida apenas para Salvador/BA.</p>
