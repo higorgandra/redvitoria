@@ -16,19 +16,21 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
 
     return <>
         <div className={`fixed inset-y-0 left-0 bg-white w-64 p-6 z-30 transform transition-transform duration-300 ease-in-out border-r border-gray-100 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:fixed`}>
-            <div className="flex items-center mb-12">
-                <div className="bg-[#8B0000] text-white p-2 rounded-lg mr-2 transform -rotate-3">
-                    <LayoutDashboard size={24} strokeWidth={2.5} />
+            <a href="/" target="_blank" rel="noopener noreferrer" className="block mb-12">
+                <div className="flex items-center">
+                    <div className="bg-[#8B0000] text-white p-2 rounded-lg mr-2 transform -rotate-3">
+                        <LayoutDashboard size={24} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-black text-gray-900 tracking-tight">
+                            RED<span className="text-[#8B0000]">VITORIA</span>
+                        </h1>
+                        <span className="text-[9px] font-bold text-gray-400 tracking-widest uppercase block -mt-1">
+                            Painel Admin
+                        </span>
+                    </div>
                 </div>
-                <div>
-                    <h1 className="text-xl font-black text-gray-900 tracking-tight">
-                        RED<span className="text-[#8B0000]">VITORIA</span>
-                    </h1>
-                    <span className="text-[9px] font-bold text-gray-400 tracking-widest uppercase block -mt-1">
-                        Painel Admin
-                    </span>
-                </div>
-            </div>
+            </a>
 
             <nav className="flex flex-col gap-2">
                 {menuItems.map((item) => (
