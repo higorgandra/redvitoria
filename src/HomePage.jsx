@@ -164,7 +164,7 @@ const HomePage = ({ cart, addToCart }) => {
                 <span className="text-[#8B0000]">Sem espera.</span>
               </h2>
               <p className="text-lg text-gray-600 mb-8 max-w-lg leading-relaxed">
-                Esqueça os prazos longos de catálogo. Aqui na <strong>RedVitoria</strong>, todos os produtos já estão comigo. Pediu hoje, chegou hoje.
+                Esqueça os prazos longos de catálogo. Aqui na <span className="text-[#8B0000]">Vitoria</span>, todos os produtos já estão comigo. Pediu hoje, chegou hoje.
               </p>
               
               <div className="flex flex-wrap justify-center sm:justify-start items-center gap-4">
