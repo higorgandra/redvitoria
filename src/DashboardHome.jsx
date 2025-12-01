@@ -32,7 +32,12 @@ const DashboardHome = () => {
         // onSnapshot ouve as mudanças no documento em tempo real
         const unsubscribe = onSnapshot(metricsRef, (docSnap) => {
             if (docSnap.exists()) {
-                setMetrics(docSnap.data());
+                const data = docSnap.data();
+                // Garante que o estado seja atualizado com os valores existentes ou 0
+                setMetrics(prevMetrics => ({
+                    ...prevMetrics,
+                    ...data
+                }));
             } else {
                 console.log("Documento de métricas ainda não existe.");
             }
@@ -47,9 +52,9 @@ const DashboardHome = () => {
         <div className="p-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Visão Geral</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <StatCard icon={<ShoppingBag size={24} className="text-gray-600" />} title="Cliques em 'Adicionar à Sacola'" value={loading ? '...' : metrics.addToCartClicks} description="Total de interações no botão de adicionar produto." />
-                <StatCard icon={<MessageCircle size={24} className="text-gray-600" />} title="Cliques em 'Finalizar no WhatsApp'" value={loading ? '...' : metrics.whatsappClicks} description="Total de interações no botão para finalizar via WhatsApp." />
-                <StatCard icon={<Send size={24} className="text-gray-600" />} title="Cliques no Catálogo (Anúncio)" value={loading ? '...' : metrics.adCardClicks} description="Total de cliques no card de anúncio para o catálogo." />
+                <StatCard icon={<ShoppingBag size={24} className="text-gray-600" />} title="Cliques em 'Adicionar à Sacola'" value={loading ? '...' : metrics.addToCartClicks || 0} description="Total de interações no botão de adicionar produto." />
+                <StatCard icon={<MessageCircle size={24} className="text-gray-600" />} title="Cliques em 'Finalizar no WhatsApp'" value={loading ? '...' : metrics.whatsappClicks || 0} description="Total de interações no botão para finalizar via WhatsApp." />
+                <StatCard icon={<Send size={24} className="text-gray-600" />} title="Cliques no Catálogo (Anúncio)" value={loading ? '...' : metrics.adCardClicks || 0} description="Total de cliques no card de anúncio para o catálogo." />
             </div>
         </div>
     );
