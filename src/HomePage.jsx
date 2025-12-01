@@ -161,7 +161,7 @@ const HomePage = ({ cart, addToCart }) => {
               </div>
               <h2 className="text-4xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
                 Viu, gostou, pegou. <br />
-                <span className="text-[#8B0000]">Sem espera.</span>
+                <span className="text-[#8B0000]">Sem esperar.</span>
               </h2>
               <p className="text-lg text-gray-600 mb-8 max-w-lg leading-relaxed">
                 Esqueça os prazos longos de catálogo. Aqui na <span className="text-[#8B0000]"><strong>Vitoria</strong></span>, todos os produtos já estão comigo. Pediu hoje, chegou hoje.
