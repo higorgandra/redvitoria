@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Menu, X, Star, Truck, MessageCircle, MapPin, Check, Package, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingBag, Menu, X, Star, Truck, MessageCircle, MapPin, Check, Package, ChevronLeft, ChevronRight, Instagram } from 'lucide-react';
 import LogoSlider from './LogoSlider';
 import FeaturesSection from './FeaturesSection';
 import ProductCard from './ProductCard';
@@ -273,12 +273,21 @@ const HomePage = ({ cart, addToCart }) => {
         <FeaturesSection />
   
         <footer id="contato" className="bg-white pt-12 border-t border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 flex justify-center text-center mb-8">
+          <div className="max-w-7xl mx-auto px-4 flex flex-col items-center text-center mb-8">
             <a href="#home" onClick={(e) => handleNavClick(e, '#home')} className="cursor-pointer">
               <div>
                 <h2 className="text-xl font-black text-gray-900">RED<span className="text-[#B22222]">VITORIA</span></h2>
                 <p className="text-sm text-gray-500 mt-1">Sua loja de pronta entrega em Salvador.</p>
               </div>
+            </a>
+            <a 
+              href="https://www.instagram.com/consultoravitoriamgandra" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="mt-6 text-gray-500 hover:text-[#8B0000] transition"
+              aria-label="Siga-nos no Instagram"
+            >
+              <Instagram size={28} />
             </a>
           </div>
           <div className="bg-red-100 text-center text-red-900 text-xs py-6 px-4">
