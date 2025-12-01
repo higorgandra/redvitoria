@@ -6,6 +6,20 @@ import { incrementMetric } from './firebase'; // 1. Importar a função
 const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const totalDiscount = cart.reduce((acc, item) => {
+    // Garante que fullPrice seja um número, usando o dobro do preço como fallback.
+    const fullPrice = typeof item.fullPrice === 'number' && item.fullPrice > 0 ? item.fullPrice : item.price * 2;
+    const itemDiscount = (fullPrice - item.price) * item.quantity;
+    // Soma apenas se o desconto for positivo
+    return acc + (itemDiscount > 0 ? itemDiscount : 0);
+  }, 0);
+
+  const totalFullPrice = cart.reduce((acc, item) => {
+    // Usa a mesma lógica de fallback para consistência
+    const fullPrice = typeof item.fullPrice === 'number' && item.fullPrice > 0 ? item.fullPrice : item.price * 2;
+    return acc + fullPrice * item.quantity;
+  }, 0);
+
   const total = subtotal; // Assumindo frete grátis por enquanto
   const phone = "5571992293834"; // Número de telefone centralizado
 
@@ -113,6 +127,18 @@ const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
               <div className="bg-white p-6 rounded-lg shadow-sm sticky top-28">
                 <h3 className="text-lg font-semibold border-b pb-4 mb-4">Resumo do Pedido</h3>
                 <div className="space-y-2">
+                  {totalDiscount > 0 && (
+                    <div className="flex justify-between text-sm text-gray-500">
+                      <span>Valor cheio</span>
+                      <span>{formatPrice(totalFullPrice)}</span>
+                    </div>
+                  )}
+                  {totalDiscount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span className="font-medium">Descontos</span>
+                      <span className="font-medium">-{formatPrice(totalDiscount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm text-gray-600">
                     <span>Subtotal</span>
                     <span>{formatPrice(subtotal)}</span>
@@ -120,6 +146,22 @@ const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
                   <div className="flex justify-between text-sm text-gray-600">
                     <span>Entrega</span>
                     <span className="font-medium text-green-600">Grátis</span>
+                  </div>
+                </div>
+                {/* Campo de Cupom de Desconto */}
+                <div className="mt-6 pt-4 border-t border-dashed">
+                  <label htmlFor="coupon" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Cupom de desconto
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      id="coupon"
+                      name="coupon"
+                      placeholder="Insira seu cupom"
+                      className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50"
+                    />
+                    <button type="button" className="px-4 py-2 bg-gray-800 text-white text-sm font-semibold rounded-lg hover:bg-black transition-colors">Aplicar</button>
                   </div>
                 </div>
                 <div className="flex justify-between text-lg font-bold text-gray-900 mt-4 pt-4 border-t">
