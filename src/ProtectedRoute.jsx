@@ -1,37 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
+import { useAuth } from './AuthContext';
 import { auth } from './firebase';
+import { signOut } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
 
 const ProtectedRoute = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const { currentUser, loading } = useAuth(); // 1. Obter o estado de 'loading' do contexto
+    const ADMIN_UID = "JC6P8EQrLBOc9fzKm3XdXkKGb0i1";
 
     useEffect(() => {
-        // O onAuthStateChanged é um "ouvinte" que notifica em tempo real
-        // se o usuário está logado ou não.
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-            setLoading(false);
-        });
+        // Este efeito é acionado sempre que o currentUser muda.
+        if (!loading && currentUser && currentUser.uid !== ADMIN_UID) {
+            // Se um usuário está logado mas NÃO é o admin, exibe o alerta e o expulsa.
+            alert("Acesso restrito. Esta conta não tem permissão para entrar no painel.");
+            signOut(auth);
+        }
+    }, [currentUser, loading]);
 
-        // Limpa o "ouvinte" quando o componente é desmontado para evitar vazamento de memória.
-        return () => unsubscribe();
-    }, []);
-
-    // Enquanto verifica a autenticação, exibe uma tela de carregamento.
+    // 2. Enquanto o AuthContext estiver carregando, exibe uma tela de loading.
+    // Isso impede qualquer redirecionamento prematuro.
     if (loading) {
-        return (
-            <div className="flex justify-center items-center h-screen bg-gray-50">
-                <Loader2 className="animate-spin text-[#8B0000]" size={48} />
-            </div>
-        );
+        return <div className="flex justify-center items-center h-screen bg-white"><Loader2 className="animate-spin text-[#8B0000]" size={48} /></div>;
     }
 
-    // Se não houver usuário logado, redireciona para a página de login.
-    // O `replace` evita que o usuário possa voltar para a página de login com o botão "voltar" do navegador.
-    return user ? children : <Navigate to="/login" replace />;
+    // 3. Após o carregamento, se o usuário não for o admin, redireciona para o login.
+    if (!currentUser || currentUser.uid !== ADMIN_UID) {
+        return <Navigate to="/login" replace />;
+    }
+
+    // Se passou pelas verificações, é o admin. Permite o acesso.
+    return children;
 };
 
 export default ProtectedRoute;

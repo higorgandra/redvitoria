@@ -7,6 +7,7 @@ import DashboardHome from './DashboardHome.jsx';
 import ProductsPage from './ProductsPage.jsx';
 import CartPage from './CartPage.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx'; // 1. Importar o componente
+import { AuthProvider } from './AuthContext.jsx';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -68,25 +69,27 @@ const App = () => {
   const clearCart = () => setCart([]);
 
   return (
-    <Router>
-      <ScrollToTop />
-      <Routes>
-        <Route path="/" element={<HomePage cart={cart} addToCart={addToCart} />} />
-        <Route path="/carrinho" element={<CartPage cart={cart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} clearCart={clearCart} />} />
-        <Route path="/login" element={<LoginPage />} />
-        {/* 2. Envolver a rota do Dashboard com o ProtectedRoute */}
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }>
-          <Route index element={<DashboardHome />} />
-          <Route path="produtos" element={<ProductsPage />} />
-        </Route>
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <ScrollToTop />
+        <Routes>
+          <Route path="/" element={<HomePage cart={cart} addToCart={addToCart} />} />
+          <Route path="/carrinho" element={<CartPage cart={cart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} clearCart={clearCart} />} />
+          <Route path="/login" element={<LoginPage />} />
+          {/* 2. Envolver a rota do Dashboard com o ProtectedRoute */}
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }>
+            <Route index element={<DashboardHome />} />
+            <Route path="produtos" element={<ProductsPage />} />
+          </Route>
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 };
 
