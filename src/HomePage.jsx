@@ -111,6 +111,14 @@ const HomePage = ({ cart, addToCart }) => {
   
     return (
       <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
+
+        {/* Top Announcement Bar */}
+        <div className="bg-[#B22222] text-white py-2 px-4 text-center text-xs font-semibold tracking-wide hidden md:block">
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 ">
+            <MapPin size={14} />
+            Exclusivo para Salvador/BA
+          </div>
+        </div>
         
         {showNotification && (
           <div className="fixed top-24 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 animate-bounce flex items-center gap-2">
@@ -151,60 +159,49 @@ const HomePage = ({ cart, addToCart }) => {
           </div>
         </nav>
   
-        <section id="home" className="relative bg-white h-[calc(100vh-5rem)] flex items-center lg:h-auto lg:py-24 overflow-hidden border-b border-gray-100">
-          <div className="absolute top-0 right-0 w-1/2 h-full bg-[#B22222]/10 skew-x-12 transform translate-x-20"></div>
-          <div className="max-w-7xl mx-auto px-4 relative z-10 flex flex-col md:flex-row items-center w-full">
-            <div className="md:w-1/2 mb-12 md:mb-0">
-              <div className="inline-flex items-center gap-2 py-1 px-4 rounded-full bg-[#B22222]/20 text-[#8B0000] text-xs font-bold uppercase tracking-wider mb-6">
-                <MapPin size={14} />
-                Exclusivo para Salvador
+        <section id="home" className="relative bg-white flex items-center pt-8 pb-16 md:py-24 overflow-hidden border-b border-gray-100">
+          <div className="absolute top-0 right-0 w-1/2 h-full bg-[#B22222]/10 skew-x-12 transform translate-x-20 hidden md:block"></div>
+          <div className="max-w-7xl mx-auto px-4 relative z-10 flex flex-col items-center w-full text-center">
+            <div className="w-full">
+              {/* Hero Image Carousel */}
+              <div className="mb-8 flex w-full justify-center relative h-64 md:h-80">
+                <div className="relative">
+                  <div className="absolute -inset-4 bg-[#B22222]/20 rounded-full blur-xl"></div>
+                  <div className="relative w-64 h-64 md:w-80 md:h-80">
+                    {products.map((product, index) => (
+                      <img 
+                        key={product.id}
+                        src={product.image} 
+                        alt={product.name} 
+                        className={`absolute inset-0 rounded-2xl shadow-2xl object-cover w-full h-full border-4 border-white rotate-3 transition-opacity duration-1000 ease-in-out
+                          ${index === heroImageIndex ? 'opacity-100' : 'opacity-0'}`}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
-              <h2 className="text-4xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
+
+              <h2 className="text-3xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-3">
                 Viu, gostou, pegou. <br />
                 <span className="text-[#8B0000]">Sem esperar.</span>
               </h2>
-              <p className="text-lg text-gray-600 mb-8 max-w-lg leading-relaxed">
-                Esqueça os prazos longos de catálogo. Aqui na <span className="text-[#8B0000]"><strong>Vitoria</strong></span>, todos os produtos já estão comigo. Pediu hoje, chegou hoje.
+
+              <p className="text-base md:text-lg text-gray-600 mb-6 max-w-2xl leading-relaxed mx-auto">
+                Aqui na <span className="text-[#8B0000]"><strong>Vitoria</strong></span>, todos os produtos já estão comigo. Pediu hoje, chegou hoje.
               </p>
               
-              <div className="flex flex-wrap justify-center sm:justify-start items-center gap-4">
+              <div className="flex flex-wrap justify-center items-center gap-4">
                 <a 
                   href="#estoque" 
                   onClick={(e) => handleNavClick(e, '#estoque')} 
-                  className="bg-[#8B0000] text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg font-bold hover:bg-[#650000] transition shadow-lg shadow-[#B22222]/30 text-center">
+                  className="bg-[#8B0000] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#650000] transition shadow-lg shadow-[#B22222]/30 text-center">
                   Estoque
                 </a>
-                <div className="flex items-center gap-3 px-4 py-3 sm:px-6 sm:py-4 bg-white border border-gray-100 rounded-lg shadow-sm">
+                <div className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-100 rounded-lg shadow-sm">
                   <Truck className="text-green-600" />
                   <span className="text-sm font-semibold text-gray-700">
                     Entrega Grátis <br/> <span className="text-xs font-normal text-gray-500">Apenas Salvador/BA</span>
                   </span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="hidden md:flex md:w-1/2 justify-center relative">
-              <div className="relative">
-                <div className="absolute -inset-4 bg-[#B22222]/20 rounded-full blur-xl"></div>
-                <div className="relative w-72 h-72 md:w-96 md:h-96">
-                  {products.map((product, index) => (
-                    <img 
-                      key={product.id}
-                      src={product.image} 
-                      alt={product.name} 
-                      className={`absolute inset-0 rounded-2xl shadow-2xl object-cover w-full h-full border-4 border-white rotate-3 transition-opacity duration-1000 ease-in-out
-                        ${index === heroImageIndex ? 'opacity-100' : 'opacity-0'}`}
-                    />
-                  ))}
-                </div>
-                <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-xl shadow-xl border border-gray-100 flex items-center gap-3 animate-bounce-slow">
-                  <div className="bg-green-100 p-2 rounded-full text-green-700">
-                    <Package size={24} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-bold uppercase">Status</p>
-                    <p className="text-sm font-bold text-gray-900">Em Estoque</p>
-                  </div>
                 </div>
               </div>
             </div>

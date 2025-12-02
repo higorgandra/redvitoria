@@ -81,7 +81,7 @@ const ProductCard = ({ product, brandColors, onAddToCart }) => {
           ) : (
             /* Placeholder for ad cards to maintain layout */
             <div className="flex flex-col mb-3 h-[52px] items-start justify-center">
-              <p className="text-xs text-gray-400">Clique abaixo para visitar minha loja e ver mais produtos via catálogo.</p>
+              <p className="text-xs text-gray-400">Clique abaixo para visitar minha loja nacional e ver mais produtos via catálogo.</p>
             </div>
           )}
         </div>
