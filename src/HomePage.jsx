@@ -83,13 +83,8 @@ const HomePage = ({ cart, addToCart }) => {
       setCurrentPage(1);
     }, [activeBrand]);
 
-    // Filtra os produtos pela marca selecionada
-    const brandFilteredProducts = activeBrand === 'all'
-      ? products
-      : products.filter(p => p.brand === activeBrand);
-
     // Aplica a ordenação por preço, se definida
-    const sortedByPriceProducts = [...brandFilteredProducts].sort((a, b) => {
+    const sortedProducts = [...products].sort((a, b) => {
       // Ignora produtos do tipo 'Anúncio' da ordenação de preço
       if (a.status === 'Anúncio' || b.status === 'Anúncio') return 0;
       if (priceSort === 'asc') {
@@ -98,11 +93,17 @@ const HomePage = ({ cart, addToCart }) => {
       if (priceSort === 'desc') {
         return b.price - a.price;
       }
-      return 0; // Mantém a ordem original se não houver ordenação
+      // Se não houver ordenação de preço, mantém a ordem padrão (pode ser por data de criação, etc.)
+      return 0;
     });
 
+    // Filtra os produtos pela marca selecionada APÓS a ordenação
+    const brandFilteredProducts = activeBrand === 'all'
+      ? sortedProducts
+      : sortedProducts.filter(p => p.brand === activeBrand);
+
     // Reordena a lista para que o card de anúncio seja sempre o último
-    const filteredProducts = [...sortedByPriceProducts].sort((a, b) => {
+    const finalProductList = [...brandFilteredProducts].sort((a, b) => {
       if (a.status === 'Anúncio') return 1; // Move 'a' para o final
       if (b.status === 'Anúncio') return -1; // Move 'b' para o final (deixando 'a' antes)
       return 0; // Mantém a ordem para os outros produtos
@@ -110,13 +111,29 @@ const HomePage = ({ cart, addToCart }) => {
   
     // Lógica da Paginação
     const productsPerPage = 12;
-    const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+    const totalPages = Math.ceil(finalProductList.length / productsPerPage);
     const indexOfLastProduct = currentPage * productsPerPage;
     const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-    const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+    const currentProducts = finalProductList.slice(indexOfFirstProduct, indexOfLastProduct);
 
     const handlePageChange = (newPage) => {
         if (newPage > 0 && newPage <= totalPages) setCurrentPage(newPage);
+    };
+
+    const handleBottomPageChange = (newPage) => {
+        if (newPage > 0 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+            
+            // Lógica para rolar a tela para o topo da seção de estoque
+            const targetElement = document.querySelector('#estoque');
+            if (targetElement) {
+                const headerOffset = 80; // Altura do header para não cobrir o título
+                const elementPosition = targetElement.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+                window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+            }
+        }
     };
 
     const handleAddToCart = (product) => {
@@ -382,13 +399,13 @@ const HomePage = ({ cart, addToCart }) => {
             {/* Pagination Controls for HomePage */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center mt-8 gap-4">
-                  <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="p-3 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                  <button onClick={() => handleBottomPageChange(currentPage - 1)} disabled={currentPage === 1} className="p-3 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
                       <ChevronLeft size={20} />
                   </button>
                   <span className="text-sm font-semibold text-gray-700">
                       Página {currentPage} de {totalPages}
                   </span>
-                  <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-3 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                  <button onClick={() => handleBottomPageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-3 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
                       <ChevronRight size={20} />
                   </button>
               </div>
