@@ -127,8 +127,10 @@ const HomePage = ({ cart, addToCart }) => {
             // Lógica para rolar a tela para o topo da seção de estoque
             const targetElement = document.querySelector('#estoque');
             if (targetElement) {
-                const headerOffset = 80; // Altura do header para não cobrir o título
-                const elementPosition = targetElement.getBoundingClientRect().top;
+                // Calcula dinamicamente a altura do header para um scroll mais preciso
+                const headerElement = document.querySelector('nav');
+                const headerOffset = headerElement ? headerElement.offsetHeight : 80;
+                const elementPosition = targetElement.getBoundingClientRect().top; // Posição relativa à viewport
                 const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
                 window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
