@@ -91,7 +91,7 @@ const SocialPage = () => {
             className="transition-colors hover:text-[#8B0000]"
           >@consultoravitoriamgandra</a>
         </h1>
-        <p className="text-gray-600 mt-2 text-center">Pronta entrega de cosméticos em Salvador/BA.</p>
+        <p className="text-gray-600 mt-2 text-center">Pronta entrega de Produtos de Beleza em Salvador/BA</p>
 
         {/* Main Links */}
         <div className="w-full mt-8 space-y-4">
