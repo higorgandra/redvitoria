@@ -159,11 +159,11 @@ const HomePage = ({ cart, addToCart }) => {
           </div>
         </nav>
   
-        <section id="home" className="relative bg-white flex items-center pt-8 pb-16 md:py-24 overflow-hidden border-b border-gray-100 lg:h-auto">
+        <section id="home" className="relative bg-white flex items-center justify-center pt-8 pb-16 md:py-24 overflow-hidden border-b border-gray-100 h-[calc(100vh-5rem)] md:h-auto">
           <div className="absolute top-0 right-0 w-1/2 h-full bg-[#B22222]/10 skew-x-12 transform translate-x-20 hidden md:block"></div>
           <div className="max-w-7xl mx-auto px-4 relative z-10 w-full">
             {/* Mobile Layout: Centered */}
-            <div className="flex flex-col items-center text-center md:hidden">
+            <div className="flex flex-col items-center justify-center text-center md:hidden h-full">
               <div className="w-full">
                 {/* Hero Image Carousel */}
                 <div className="mb-8 flex w-full justify-center relative h-64">
