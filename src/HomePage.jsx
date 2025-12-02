@@ -254,7 +254,7 @@ const HomePage = ({ cart, addToCart }) => {
                   <a href="#estoque" onClick={(e) => handleNavClick(e, '#estoque')} className="bg-[#8B0000] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#650000] transition shadow-lg shadow-[#B22222]/30 text-center">
                     Estoque
                   </a>
-                  <Link to="/redessociais" className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-100 rounded-lg shadow-sm hover:bg-gray-50 transition">
+                  <Link to="/social" className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-100 rounded-lg shadow-sm hover:bg-gray-50 transition">
                     <Instagram className="text-[#8B0000]" />
                     <span className="text-sm font-semibold text-gray-700">
                       Nossos Links <br/>
@@ -282,7 +282,7 @@ const HomePage = ({ cart, addToCart }) => {
                   <a href="#estoque" onClick={(e) => handleNavClick(e, '#estoque')} className="bg-[#8B0000] text-white px-8 py-4 rounded-lg font-bold hover:bg-[#650000] transition shadow-lg shadow-[#B22222]/30 text-center">
                     Estoque
                   </a>
-                  <Link to="/redessociais" className="flex items-center gap-3 px-6 py-4 bg-white border border-gray-100 rounded-lg shadow-sm hover:bg-gray-50 transition">
+                  <Link to="/social" className="flex items-center gap-3 px-6 py-4 bg-white border border-gray-100 rounded-lg shadow-sm hover:bg-gray-50 transition">
                     <Instagram className="text-[#8B0000]" />
                     <span className="text-sm font-semibold text-gray-700">
                       Nossos Links <br/>
