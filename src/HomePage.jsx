@@ -123,18 +123,20 @@ const HomePage = ({ cart, addToCart }) => {
     const handleBottomPageChange = (newPage) => {
         if (newPage > 0 && newPage <= totalPages) {
             setCurrentPage(newPage);
-            
-            // Lógica para rolar a tela para o topo da seção de estoque
-            const targetElement = document.querySelector('#estoque');
-            if (targetElement) {
-                // Calcula dinamicamente a altura do header para um scroll mais preciso
-                const headerElement = document.querySelector('nav');
-                const headerOffset = headerElement ? headerElement.offsetHeight : 80;
-                const elementPosition = targetElement.getBoundingClientRect().top; // Posição relativa à viewport
-                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
-                window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-            }
+            // Adiciona um pequeno delay para garantir que o DOM seja atualizado antes de rolar.
+            // Isso corrige o comportamento inconsistente em dispositivos móveis.
+            setTimeout(() => {
+                const targetElement = document.querySelector('#estoque');
+                if (targetElement) {
+                    const headerElement = document.querySelector('nav');
+                    const headerOffset = headerElement ? headerElement.offsetHeight : 80;
+                    const elementPosition = targetElement.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+                    window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                }
+            }, 0); // O delay de 0ms é suficiente para empurrar a execução para o final da fila de eventos.
         }
     };
 
