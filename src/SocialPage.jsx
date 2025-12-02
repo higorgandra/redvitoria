@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Instagram, ShoppingBag, ArrowRight, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -12,8 +12,8 @@ const WhatsAppIcon = ({ size = 24 }) => (
 
 const mainLinks = [
   {
-    icon: <ShoppingBag size={20} />,
-    title: 'Ver Produtos Pronta Entrega',
+    icon: <ShoppingBag size={20} />, // Corrigido de 'Ver Vitrine Pronta Entrega'
+    title: 'Ver Vitrine Pronta Entrega',
     url: '/',
     isInternal: true,
   },
@@ -64,6 +64,16 @@ const LinkButton = ({ link }) => {
 };
 
 const SocialPage = () => {
+  // Efeito para bloquear o scroll do body enquanto esta página estiver visível
+  useEffect(() => {
+    document.body.classList.add('overflow-hidden');
+
+    // Função de limpeza para remover a classe quando o componente for desmontado
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, []); // Array vazio garante que o efeito rode apenas na montagem e desmontagem
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800 flex flex-col items-center p-4">
       <main className="w-full max-w-lg mx-auto flex flex-col items-center pt-12">
@@ -73,7 +83,14 @@ const SocialPage = () => {
           alt="Vitória Mota"
           className="w-24 h-24 rounded-full object-cover shadow-lg border-4 border-white mb-4"
         />
-        <h1 className="text-2xl font-bold text-gray-900">@consultoravitoriamgandra</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          <a 
+            href="https://www.instagram.com/consultoravitoriamgandra" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-[#8B0000]"
+          >@consultoravitoriamgandra</a>
+        </h1>
         <p className="text-gray-600 mt-2 text-center">Pronta entrega de cosméticos em Salvador/BA.</p>
 
         {/* Main Links */}
