@@ -580,8 +580,12 @@ const ProductsPage = () => {
     const brands = [
         { value: 'all', label: 'Todas' },
         { value: 'avon', label: 'Avon' },
+        { value: 'boticario', label: 'Boticário' },
+        { value: 'eudora', label: 'Eudora' },
+        { value: 'loccitane-au-bresil', label: 'L`Occitane au Brésil' },
         { value: 'natura', label: 'Natura' },
-        { value: 'boticario', label: 'Boticário' }
+        { value: 'oui-paris', label: 'O.U.i Paris' },
+        { value: 'quem-disse-berenice', label: 'Quem disse, Berenice?' },
     ];
     return (
         <div className="p-6">
@@ -828,8 +832,12 @@ const ProductsPage = () => {
                                     <label className="text-sm font-medium text-gray-700">Marca</label>
                                     <select name="brand" value={newProductData.brand} onChange={handleNewProductChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50 capitalize">
                                         <option value="boticario">Boticário</option>
+                                        <option value="eudora">Eudora</option>
+                                        <option value="loccitane-au-bresil">L’Occitane au Brésil</option>
                                         <option value="natura">Natura</option>
                                         <option value="avon">Avon</option>
+                                        <option value="oui-paris">O.U.i Paris</option>
+                                        <option value="quem-disse-berenice">Quem disse, Berenice?</option>
                                     </select>
                                 </div>
                                 <div>
@@ -893,9 +901,11 @@ const ProductsPage = () => {
                                         <div>
                                             <label className="text-sm font-medium text-gray-700">Marca</label>
                                             <select name="brand" value={editFormData.brand || ''} onChange={handleEditFormChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50 capitalize">
-                                                <option value="boticario">Boticário</option>
-                                                <option value="natura">Natura</option>
-                                                <option value="avon">Avon</option>
+                                                <option value="boticario">Boticário</option>                                                <option value="eudora">Eudora</option>
+                                                <option value="loccitane-au-bresil">L’Occitane au Brésil</option>
+                                                <option value="natura">Natura</option>                                                <option value="avon">Avon</option>
+                                                <option value="oui-paris">O.U.i Paris</option>
+                                                <option value="quem-disse-berenice">Quem disse, Berenice?</option>
                                             </select>
                                         </div>
                                         <div>

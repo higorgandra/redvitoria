@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Menu, X, Star, Truck, MessageCircle, MapPin, Check, Package, ChevronLeft, ChevronRight, Instagram } from 'lucide-react';
+import { ShoppingBag, Menu, X, Star, Truck, MessageCircle, MapPin, Check, Package, ChevronLeft, ChevronRight, Instagram, ChevronDown } from 'lucide-react';
 import LogoSlider from './LogoSlider';
 import FeaturesSection from './FeaturesSection';
 import ProductCard from './ProductCard';
@@ -8,15 +8,20 @@ import { db } from './firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 
 const brandColors = {
-  boticario: "bg-green-700",
-  natura: "bg-orange-500",
-  avon: "bg-pink-600",
-  all: "bg-gray-800"
+    boticario: "bg-green-700",
+    natura: "bg-orange-500",
+    avon: "bg-pink-600",
+    eudora: "bg-purple-700",
+    'quem-disse-berenice': "bg-pink-500",
+    'loccitane-au-bresil': "bg-yellow-500",
+    'oui-paris': "bg-amber-500",
+    all: "bg-gray-800"
 };
 
 const HomePage = ({ cart, addToCart }) => {
     const [activeBrand, setActiveBrand] = useState('all');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isBrandModalOpen, setIsBrandModalOpen] = useState(false); // Estado para o modal de marcas
     const [showNotification, setShowNotification] = useState(false);
     const [heroImageIndex, setHeroImageIndex] = useState(0);
     const [products, setProducts] = useState([]);
@@ -24,6 +29,18 @@ const HomePage = ({ cart, addToCart }) => {
     const [currentPage, setCurrentPage] = useState(1);
 
     // Efeito para buscar os produtos do Firestore
+    const brands = [
+      { value: 'all', label: 'Todos' },
+      { value: 'natura', label: 'Natura' },
+      { value: 'boticario', label: 'Boticário' },
+      { value: 'avon', label: 'Avon' },
+      { value: 'eudora', label: 'Eudora' },
+      { value: 'quem-disse-berenice', label: 'Quem disse, Berenice?' },
+      { value: 'loccitane-au-bresil', label: 'L’Occitane au Brésil' },
+      { value: 'oui-paris', label: 'O.U.i Paris' },
+    ];
+    const selectedBrandLabel = brands.find(b => b.value === activeBrand)?.label || 'Selecionar Marca';
+
     useEffect(() => {
       const fetchProducts = async () => {
         setLoading(true);
@@ -46,14 +63,18 @@ const HomePage = ({ cart, addToCart }) => {
       return () => clearInterval(imageInterval);
     }, [products]);
   
-    // Efeito para bloquear o scroll do body quando o menu mobile está aberto
+    // Efeito para bloquear o scroll do body quando um modal/menu está aberto
     useEffect(() => {
-      if (isMenuOpen) {
+      if (isMenuOpen || isBrandModalOpen) {
         document.body.classList.add('overflow-hidden');
       } else {
         document.body.classList.remove('overflow-hidden');
       }
-    }, [isMenuOpen]);
+      // Função de limpeza para garantir que o scroll seja reativado se o componente for desmontado
+      return () => {
+        document.body.classList.remove('overflow-hidden');
+      };
+    }, [isMenuOpen, isBrandModalOpen]);
   
     // Reseta para a primeira página sempre que a marca ativa for alterada
     useEffect(() => {
@@ -174,9 +195,10 @@ const HomePage = ({ cart, addToCart }) => {
                         <img 
                           key={product.id}
                           src={product.image} 
-                          alt={product.name} 
-                          className={`absolute inset-0 rounded-2xl shadow-2xl object-cover w-full h-full border-4 border-white rotate-3 transition-opacity duration-1000 ease-in-out
-                            ${index === heroImageIndex ? 'opacity-100' : 'opacity-0'}`}
+                          alt={product.name}
+                          className={`absolute inset-0 rounded-2xl shadow-2xl object-cover w-full h-full border-4 border-white rotate-3 transition-opacity duration-1000 ease-in-out ${
+                            index === heroImageIndex ? 'opacity-100' : 'opacity-0'
+                          }`}
                         />
                       ))}
                     </div>
@@ -242,8 +264,9 @@ const HomePage = ({ cart, addToCart }) => {
                         key={product.id}
                         src={product.image} 
                         alt={product.name} 
-                        className={`absolute inset-0 rounded-2xl shadow-2xl object-cover w-full h-full border-4 border-white rotate-3 transition-opacity duration-1000 ease-in-out
-                          ${index === heroImageIndex ? 'opacity-100' : 'opacity-0'}`}
+                        className={`absolute inset-0 rounded-2xl shadow-2xl object-cover w-full h-full border-4 border-white rotate-3 transition-opacity duration-1000 ease-in-out ${
+                          index === heroImageIndex ? 'opacity-100' : 'opacity-0'
+                        }`}
                       />
                     ))}
                   </div>
@@ -271,18 +294,29 @@ const HomePage = ({ cart, addToCart }) => {
               </div>
               
               <div className="flex flex-wrap justify-center md:justify-end gap-2 mt-4 md:mt-0 w-full md:w-auto">
-                {['all', 'natura', 'boticario', 'avon'].map(brand => (
-                  <button 
-                    key={brand}
-                    onClick={() => setActiveBrand(brand)}
-                    className={`px-5 py-2 rounded-full border text-sm font-bold whitespace-nowrap transition capitalize
-                      ${activeBrand === brand 
-                        ? 'bg-gray-900 text-white border-gray-900' 
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-900'}`}
-                  >
-                    {brand === 'all' ? 'Todos' : brand}
-                  </button>
-                ))}
+                {/* Botão "Todos" */}
+                <button 
+                  onClick={() => setActiveBrand('all')}
+                  className={`px-5 py-2 rounded-full border text-sm font-bold whitespace-nowrap transition
+                    ${activeBrand === 'all' 
+                      ? 'bg-gray-900 text-white border-gray-900' 
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-900'}`}
+                >
+                  Todos
+                </button>
+                {/* Botão para abrir o modal de marcas */}
+                <button 
+                  onClick={() => setIsBrandModalOpen(true)}
+                  className={`px-5 py-2 rounded-full border text-sm font-bold whitespace-nowrap transition flex items-center gap-2
+                    ${activeBrand !== 'all' 
+                      ? 'bg-gray-900 text-white border-gray-900' 
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-900'}`}
+                >
+                  <span className="normal-case">
+                    {activeBrand === 'all' ? 'Selecionar Marca' : `Marca: ${selectedBrandLabel}`}
+                  </span>
+                  <ChevronDown size={16} />
+                </button>
               </div>
             </div>
   
@@ -318,6 +352,34 @@ const HomePage = ({ cart, addToCart }) => {
 
           </div>
         </section>
+
+        {/* Modal de Filtro de Marcas */}
+        {isBrandModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4" onClick={() => setIsBrandModalOpen(false)}>
+                <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="font-bold text-xl text-gray-800">Filtrar por Marca</h3>
+                      <button onClick={() => setIsBrandModalOpen(false)} className="p-2 rounded-full hover:bg-gray-100">
+                          <X size={20} />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        {brands.filter(b => b.value !== 'all').map(brand => (
+                            <button
+                                key={brand.value}
+                                onClick={() => {
+                                    setActiveBrand(brand.value);
+                                    setIsBrandModalOpen(false);
+                                }}
+                                className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === brand.value ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
+                            >
+                                {brand.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        )}
   
         <LogoSlider />
   
