@@ -13,7 +13,7 @@ const WhatsAppIcon = ({ size = 24 }) => (
 const mainLinks = [
   {
     icon: <ShoppingBag size={20} />,
-    title: 'L Pronta Entrega',
+    title: 'Ver Produtos Pronta Entrega',
     url: '/',
     isInternal: true,
   },
