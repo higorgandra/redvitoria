@@ -1,5 +1,5 @@
 import React from 'react';
-import { Instagram, MessageCircle, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Instagram, MessageCircle, ShoppingBag, ArrowRight, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 // Dados dos links
@@ -22,6 +22,12 @@ const mainLinks = [
     title: 'Ver Vitrine de Produtos',
     url: '/',
     isInternal: true,
+  },
+  {
+    icon: <Send size={20} />,
+    title: 'Loja Nacional (Catálogo)',
+    url: 'https://www.minhaloja.natura.com/consultoria/motagandra?marca=natura',
+    isInternal: false,
   },
   {
     icon: <MessageCircle size={20} />,
