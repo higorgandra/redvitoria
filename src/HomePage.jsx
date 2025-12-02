@@ -308,7 +308,21 @@ const HomePage = ({ cart, addToCart }) => {
                 <p className="text-gray-500 mt-1">Itens disponíveis agora em Salvador.</p>
               </div>
               
-              <div className="flex flex-wrap justify-center md:justify-end gap-2 mt-4 md:mt-0 w-full md:w-auto items-center">
+              <div className="flex flex-wrap justify-center md:justify-end gap-x-4 gap-y-2 mt-4 md:mt-0 w-full md:w-auto items-center">
+                {/* Controles de Paginação no Topo */}
+                {totalPages > 1 && (
+                  <div className="hidden md:flex items-center gap-3">
+                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="p-2 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <ChevronLeft size={18} />
+                    </button>
+                    <span className="text-sm font-semibold text-gray-600 whitespace-nowrap">
+                      Página {currentPage} de {totalPages}
+                    </span>
+                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-2 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <ChevronRight size={18} />
+                    </button>
+                  </div>
+                )}
                 {/* Botão "Todos" */}
                 <button 
                   onClick={() => setActiveBrand('all')}
