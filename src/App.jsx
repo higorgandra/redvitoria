@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import HomePage from './HomePage';
 import LoginPage from './LoginPage';
+import ProductDetailPage from './ProductDetailPage.jsx'; // Importando a nova página de produto
 import DashboardPage from './DashboardPage.jsx'; // Importando o novo dashboard com a extensão
 import DashboardHome from './DashboardHome.jsx';
 import ProductsPage from './ProductsPage.jsx';
@@ -49,13 +50,13 @@ const App = () => {
     };
   }, []);
 
-  const addToCart = (product) => {
+  const addToCart = (product, quantity = 1) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id);
       if (existingItem) {
-        return prevCart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+        return prevCart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item);
       }
-      return [...prevCart, { ...product, quantity: 1 }];
+      return [...prevCart, { ...product, quantity: quantity }];
     });
   };
 
@@ -76,6 +77,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<HomePage cart={cart} addToCart={addToCart} />} />
           <Route path="/carrinho" element={<CartPage cart={cart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} clearCart={clearCart} />} />
+          <Route path="/produto/:productId" element={<ProductDetailPage cart={cart} addToCart={addToCart} />} />
           <Route path="/social" element={<SocialPage />} />
           <Route path="/login" element={<LoginPage />} />
           {/* 2. Envolver a rota do Dashboard com o ProtectedRoute */}

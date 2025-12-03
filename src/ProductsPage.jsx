@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Search, Archive, Edit, MoreVertical, RotateCw, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, X, Percent, CheckCircle, AlertCircle, Megaphone, Trash2 } from 'lucide-react';
+import { PlusCircle, Search, Archive, Edit, MoreVertical, RotateCw, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, X, Percent, CheckCircle, AlertCircle, Megaphone, Trash2, ClipboardPaste } from 'lucide-react';
 import { db } from './firebase';
 import { collection, getDocs, doc, updateDoc, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 
@@ -118,6 +118,9 @@ const initialProductState = {
     image: '',
     sku: '',
     status: 'Ativo',
+    slug: '', // Novo campo para o link
+    description: '',
+    howToUse: '',
     discountPercentage: '',
 };
 
@@ -317,6 +320,9 @@ const ProductsPage = () => {
         setEditFormData({
             ...product,
             fullPrice: fullPrice,
+            description: product.description || '',
+            slug: product.slug || '', // Adiciona o slug ao formulário de edição
+            howToUse: product.howToUse || '',
             link: product.link || '', // Adiciona o campo link
             discountPercentage: discountPercentage > 0 ? discountPercentage.toFixed(0) : '',
         });
@@ -326,6 +332,36 @@ const ProductsPage = () => {
         setNewProductData(initialProductState); // Reseta o formulário para o estado inicial
         setIsAddModalOpen(true);
     };
+
+    const handlePasteFromClipboard = async (formType) => {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (formType === 'new') {
+                setNewProductData(prev => ({ ...prev, image: text }));
+            } else if (formType === 'edit') {
+                setEditFormData(prev => ({ ...prev, image: text }));
+            }
+            setToastMessage({ type: 'success', message: 'Link colado da área de transferência!' });
+        } catch (err) {
+            console.error('Falha ao colar da área de transferência:', err);
+            setToastMessage({ type: 'error', message: 'Não foi possível ler a área de transferência.' });
+        }
+    };
+
+    // Função para gerar um slug amigável para URL
+    const generateSlug = (text) => {
+        if (!text) return '';
+        return text
+            .toString()
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')           // Substitui espaços por -
+            .replace(/[^\w\-]+/g, '')       // Remove caracteres não-alfanuméricos (exceto -)
+            .replace(/\-\-+/g, '-')         // Substitui múltiplos - por um único -
+            .replace(/^-+/, '')             // Remove - do início
+            .replace(/-+$/, '');            // Remove - do final
+    };
+
 
     const handleEditFormChange = (e) => {
         const { name, value } = e.target;
@@ -408,8 +444,11 @@ const ProductsPage = () => {
             price: parseFloat(editFormData.price),
             fullPrice: parseFloat(editFormData.fullPrice),
             stock: stock,
+            slug: editFormData.slug ? generateSlug(editFormData.slug) : generateSlug(editFormData.name), // Gera ou usa o slug
             discountPercentage: parseFloat(editFormData.discountPercentage) || 0,
             link: editFormData.link || '',
+            description: editFormData.description || '',
+            howToUse: editFormData.howToUse || '',
             status: status,
         };
 
@@ -463,8 +502,11 @@ const ProductsPage = () => {
                 price: parseFloat(newProductData.price),
                 fullPrice: parseFloat(newProductData.fullPrice),
                 stock: isNaN(stock) ? 0 : stock,
+                slug: newProductData.slug ? generateSlug(newProductData.slug) : generateSlug(newProductData.name), // Gera ou usa o slug
                 sku: generatedSku, // Adiciona o SKU gerado ao produto
                 discountPercentage: parseFloat(newProductData.discountPercentage) || 0,
+                description: newProductData.description || '',
+                howToUse: newProductData.howToUse || '',
                 status: (isNaN(stock) || stock === 0) ? 'Sem Estoque' : 'Ativo',
                 createdAt: serverTimestamp()
             };
@@ -825,7 +867,26 @@ const ProductsPage = () => {
                                     <input type="text" name="name" value={newProductData.name} onChange={handleNewProductChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" />
                                 </div>
                                 <div className="md:col-span-2">
-                                    <label className="text-sm font-medium text-gray-700">Link da Imagem</label>
+                                    <label className="text-sm font-medium text-gray-700">
+                                        Link do Produto (Slug) - <span className="text-gray-500 font-normal">Deixe em branco para gerar automaticamente</span>
+                                    </label>
+                                    <input type="text" name="slug" value={newProductData.slug} onChange={handleNewProductChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" placeholder={generateSlug(newProductData.name)} />
+                                    <p className="text-xs text-gray-500 mt-1 truncate">
+                                        URL final: <span className="font-medium text-blue-600">redvitoria.pages.dev/produto/{newProductData.slug ? generateSlug(newProductData.slug) : generateSlug(newProductData.name)}</span>
+                                    </p>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-sm font-medium text-gray-700">Link da Imagem</label>
+                                        <button 
+                                            type="button"
+                                            onClick={() => handlePasteFromClipboard('new')}
+                                            className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800"
+                                        >
+                                            <ClipboardPaste size={14} />
+                                            Colar
+                                        </button>
+                                    </div>
                                     <input type="text" name="image" value={newProductData.image} onChange={handleNewProductChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" placeholder="https://..." />
                                 </div>
                                 <div>
@@ -855,6 +916,14 @@ const ProductsPage = () => {
                                 <div className="md:col-span-2">
                                     <label className="text-sm font-medium text-gray-700">Preço Final de Venda (R$)</label>
                                     <input type="number" name="price" value={newProductData.price} onChange={handleNewProductChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" placeholder="Ex: 79.90" />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="text-sm font-medium text-gray-700">Descrição Detalhada</label>
+                                    <textarea name="description" value={newProductData.description} onChange={handleNewProductChange} rows="4" className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" placeholder="Fale sobre os benefícios, fragrância, etc."></textarea>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="text-sm font-medium text-gray-700">Como Usar</label>
+                                    <textarea name="howToUse" value={newProductData.howToUse} onChange={handleNewProductChange} rows="3" className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" placeholder="Instruções de aplicação do produto."></textarea>
                                 </div>
                             </div>
                         </div>
@@ -887,13 +956,32 @@ const ProductsPage = () => {
                         {/* Modal Body */}
                         <div className="p-6 overflow-y-auto">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="md:col-span-2">
-                                    <label className="text-sm font-medium text-gray-700">Link da Imagem</label>
+                                <div className="md:col-span-2">                                    
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-sm font-medium text-gray-700">Link da Imagem</label>
+                                        <button 
+                                            type="button"
+                                            onClick={() => handlePasteFromClipboard('edit')}
+                                            className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800"
+                                        >
+                                            <ClipboardPaste size={14} />
+                                            Colar
+                                        </button>
+                                    </div>
                                     <input type="text" name="image" value={editFormData.image || ''} onChange={handleEditFormChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" />
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="text-sm font-medium text-gray-700">Nome do Produto/Anúncio</label>
                                     <input type="text" name="name" value={editFormData.name || ''} onChange={handleEditFormChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="text-sm font-medium text-gray-700">
+                                        Link do Produto (Slug) - <span className="text-gray-500 font-normal">Deixe em branco para gerar automaticamente</span>
+                                    </label>
+                                    <input type="text" name="slug" value={editFormData.slug || ''} onChange={handleEditFormChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" placeholder={generateSlug(editFormData.name)} />
+                                    <p className="text-xs text-gray-500 mt-1 truncate">
+                                        URL final: <span className="font-medium text-blue-600">redvitoria.pages.dev/produto/{editFormData.slug ? generateSlug(editFormData.slug) : generateSlug(editFormData.name)}</span>
+                                    </p>
                                 </div>
 
                                 {editFormData.status !== 'Anúncio' ? (
@@ -931,6 +1019,14 @@ const ProductsPage = () => {
                                                     </div>
                                                 )}
                                             </div>
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="text-sm font-medium text-gray-700">Descrição Detalhada</label>
+                                            <textarea name="description" value={editFormData.description || ''} onChange={handleEditFormChange} rows="4" className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50"></textarea>
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="text-sm font-medium text-gray-700">Como Usar</label>
+                                            <textarea name="howToUse" value={editFormData.howToUse || ''} onChange={handleEditFormChange} rows="3" className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50"></textarea>
                                         </div>
                                     </>
                                 ) : (

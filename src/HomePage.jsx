@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingBag, X, MapPin, Check, Package, ChevronLeft, ChevronRight, Instagram, ChevronDown, ArrowUpDown } from 'lucide-react';
 import LogoSlider from './LogoSlider';
 import FeaturesSection from './FeaturesSection';
@@ -20,6 +20,9 @@ const brandColors = {
 };
 
 const HomePage = ({ cart, addToCart }) => {
+    const location = useLocation();
+    const navigate = useNavigate();
+
     const [activeBrand, setActiveBrand] = useState('all');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [activeModal, setActiveModal] = useState(null); // 'brand', 'price', ou null
@@ -169,19 +172,20 @@ const HomePage = ({ cart, addToCart }) => {
     return (
       <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
 
-        {/* Top Announcement Bar */}
-        <div className="bg-[#B22222] text-white py-2 px-4 text-center text-xs font-semibold tracking-wide hidden md:block">
-          <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 ">
-            <MapPin size={14} />
-            Exclusivo para Salvador/BA
+        {/* Top Announcement Bar - Oculto temporariamente
+          <div className="bg-[#B22222] text-white py-2 px-4 text-center text-xs font-semibold tracking-wide hidden md:block">
+            <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 ">
+              <MapPin size={14} />
+              Exclusivo para Salvador/BA
+            </div>
           </div>
-        </div>
+        */}
         
         {showNotification && (
-          <div className="fixed top-24 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 animate-bounce flex items-center gap-2">
+          <Link to="/carrinho" className="fixed top-24 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 animate-bounce flex items-center gap-2 cursor-pointer">
             <Check size={20} />
             Adicionado à sacola!
-          </div>
+          </Link>
         )}
   
         <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100">
@@ -394,7 +398,8 @@ const HomePage = ({ cart, addToCart }) => {
                     key={product.id}
                     product={product}
                     brandColors={brandColors}
-                    onAddToCart={handleAddToCart}
+                    onAddToCart={handleAddToCart} // onAddToCart é passado para o ProductCard
+                    isHighlighted={false} // Não precisamos mais disso
                   />
                 ))
               )}

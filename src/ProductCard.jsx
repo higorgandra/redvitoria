@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useInView } from 'react-intersection-observer';
-import { ShoppingBag, ExternalLink, Send } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ShoppingBag, Send, Share2, Check } from 'lucide-react';
 import { incrementMetric } from './firebase'; // 1. Importar a função
 
-const ProductCard = ({ product, brandColors, onAddToCart }) => {
+const ProductCard = ({ product, brandColors, onAddToCart, isHighlighted }) => {
+  const [hasCopied, setHasCopied] = useState(false);
+
   const { ref, inView } = useInView({
     triggerOnce: true, // A animação acontece apenas uma vez
     threshold: 0.1,    // O card é considerado visível quando 10% dele está na tela
@@ -38,6 +41,26 @@ const ProductCard = ({ product, brandColors, onAddToCart }) => {
     incrementMetric('adCardClicks');
   };
 
+  // Função para copiar o link e alterar o estado do botão
+  const handleShareAndCopy = (e) => {
+    e.stopPropagation(); // Impede que outros eventos de clique sejam acionados
+    if (hasCopied) return; // Impede múltiplos cliques enquanto o "check" está visível
+    
+    // Gera uma URL com um parâmetro de consulta para o produto específico.
+    const productUrl = `${window.location.origin}/produto/${product.id}`; 
+    navigator.clipboard.writeText(productUrl).then(() => {
+      setHasCopied(true);
+      // Reseta o estado do botão após 2 segundos
+      setTimeout(() => {
+        setHasCopied(false);
+      }, 2000);
+    }).catch(err => {
+      console.error('Falha ao copiar o link: ', err);
+      // Opcional: mostrar uma mensagem de erro ao usuário
+      setIsShareMenuOpen(false);
+    });
+  };
+
   // Novo critério de cor para a tag de desconto
   const getDiscountTagColor = (discountValue) => {
     if (discountValue >= 30) {
@@ -53,24 +76,42 @@ const ProductCard = ({ product, brandColors, onAddToCart }) => {
     <div
       ref={ref}
       className={`bg-white rounded-lg shadow-sm hover:shadow-lg transition-all duration-500 ease-out group flex flex-col h-full
-        ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} // Lógica da animação
+        ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}
+        ${isHighlighted ? 'ring-4 ring-offset-2 ring-[#8B0000] shadow-2xl' : ''}`} // Lógica da animação e destaque
     >
       {/* Image Section */}
-      <div className="relative aspect-square overflow-hidden rounded-t-lg">
-        <div className="w-full h-full bg-gray-100">
-          <img 
-            src={product.image} 
-            alt={product.name} 
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-in-out"
-          />
+      <Link to={`/produto/${product.id}`} className="block">
+        <div className="relative aspect-square overflow-hidden rounded-t-lg">
+          <div className="w-full h-full bg-gray-100">
+            <img 
+              src={product.image} 
+              alt={product.name} 
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-in-out"
+            />
+          </div>
         </div>
-      </div>
+      </Link>
+        {/* Ícone de Compartilhar */}
+        <div className="absolute top-3 right-3">
+          <button 
+            onClick={handleShareAndCopy}
+            className={`backdrop-blur-sm p-2 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100
+              ${hasCopied 
+                ? 'bg-green-500 text-white' 
+                : 'bg-white/70 text-gray-800 hover:bg-white hover:text-[#8B0000]'}`} 
+            title={hasCopied ? "Link copiado!" : "Copiar link do produto"}
+          >
+            {hasCopied ? <Check size={18} /> : <Share2 size={18} />}
+          </button>
+        </div>      
 
       {/* Content Section */}
       <div className="p-3 flex-1 flex flex-col">
         <div className="flex-grow">
-          <h3 className="text-sm text-gray-500 capitalize mb-1">{product.brand}</h3>
-          <h4 className={`font-semibold text-gray-800 text-base leading-tight mb-2 h-12 line-clamp-2 ${isAd && 'text-blue-700'}`}>{product.name}</h4>
+          <Link to={`/produto/${product.id}`} className="block">
+            <h3 className="text-sm text-gray-500 capitalize mb-1">{product.brand}</h3>
+            <h4 className={`font-semibold text-gray-800 text-base leading-tight mb-2 h-12 line-clamp-2 hover:text-[#8B0000] transition-colors ${isAd && 'text-blue-700'}`}>{product.name}</h4>
+          </Link>
           
           {!isAd ? (
             /* Price for regular products */
