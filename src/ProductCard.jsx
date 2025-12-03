@@ -38,6 +38,17 @@ const ProductCard = ({ product, brandColors, onAddToCart }) => {
     incrementMetric('adCardClicks');
   };
 
+  // Novo critério de cor para a tag de desconto
+  const getDiscountTagColor = (discountValue) => {
+    if (discountValue >= 30) {
+      return 'bg-red-600'; // Vermelho para descontos altos (urgência)
+    }
+    if (discountValue > 0) {
+      return 'bg-green-700'; // Verde para descontos normais (oportunidade)
+    }
+    return 'bg-gray-500'; // Cor padrão caso algo dê errado
+  };
+
   return (
     <div
       ref={ref}
@@ -74,7 +85,7 @@ const ProductCard = ({ product, brandColors, onAddToCart }) => {
                   R$ {price.toFixed(2).replace('.', ',')}
                 </span>
                 {discount > 0 && (
-                  <div className={`text-white text-xs font-bold px-2 py-0.5 rounded-full ${brandColors[product.brand] || 'bg-red-600'}`}>-{discount}%</div>
+                  <div className={`text-white text-xs font-bold px-2 py-0.5 rounded-full ${getDiscountTagColor(discount)}`}>-{discount}%</div>
                 )}
               </div>
             </div>
@@ -101,7 +112,7 @@ const ProductCard = ({ product, brandColors, onAddToCart }) => {
         ) : (
           <button 
             onClick={handleAddToCartClick} // 3. Usar a nova função no botão
-            className="w-full mt-auto bg-transparent text-gray-800 border border-gray-800 hover:bg-gray-800 hover:text-white font-medium h-10 px-4 rounded-full transition-colors duration-300 flex items-center justify-center gap-2 text-sm lowercase"
+            className="w-full mt-auto bg-[#8B0000] text-white hover:bg-[#650000] font-bold h-10 px-4 rounded-full transition-colors duration-300 flex items-center justify-center gap-2 text-sm lowercase shadow-lg shadow-[#B22222]/30"
             title="adicionar à sacola"
           >
             <ShoppingBag size={16} />
