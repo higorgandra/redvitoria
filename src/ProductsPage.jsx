@@ -920,15 +920,17 @@ const ProductsPage = () => {
                                             <label className="text-sm font-medium text-gray-700">Desconto (%)</label>
                                             <input type="number" name="discountPercentage" value={editFormData.discountPercentage || ''} onChange={handleEditFormChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" placeholder="Ex: 20" />
                                         </div>
-                                        <div className="relative">
+                                        <div>
                                             <label className="text-sm font-medium text-gray-700">Preço de Venda (R$)</label>
-                                            <input type="number" name="price" value={editFormData.price || 0} onChange={handleEditFormChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" />
-                                            {calculateDiscount(editFormData.fullPrice, editFormData.price) && (
-                                                <div className="absolute top-0 right-0 flex items-center gap-1 bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full">
-                                                    <Percent size={12} />
-                                                    {(((editFormData.fullPrice - editFormData.price) / editFormData.fullPrice) * 100).toFixed(0)}% OFF
-                                                </div>
-                                            )}
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <input type="number" name="price" value={editFormData.price || 0} onChange={handleEditFormChange} className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" />
+                                                {calculateDiscount(editFormData.fullPrice, editFormData.price) && (
+                                                    <div className="flex-shrink-0 flex items-center gap-1 bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full">
+                                                        <Percent size={12} />
+                                                        {(((editFormData.fullPrice - editFormData.price) / editFormData.fullPrice) * 100).toFixed(0)}% OFF
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </>
                                 ) : (

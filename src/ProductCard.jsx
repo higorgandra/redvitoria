@@ -46,11 +46,6 @@ const ProductCard = ({ product, brandColors, onAddToCart }) => {
     >
       {/* Image Section */}
       <div className="relative aspect-square overflow-hidden rounded-t-lg">
-        {discount > 0 && !isAd && (
-          <div className={`absolute top-2 left-2 z-10 text-white text-xs font-bold px-2.5 py-1 rounded-full ${brandColors[product.brand] || 'bg-red-600'}`}>
-            -{discount}%
-          </div>
-        )}
         <div className="w-full h-full bg-gray-100">
           <img 
             src={product.image} 
@@ -68,15 +63,20 @@ const ProductCard = ({ product, brandColors, onAddToCart }) => {
           
           {!isAd ? (
             /* Price for regular products */
-            <div className="flex flex-col mb-3">
+            <div className="flex flex-col mb-3 min-h-[52px]">
               {discount > 0 && (
                 <span className="text-xs text-gray-400 line-through">
                   R$ {fullPrice.toFixed(2).replace('.', ',')}
                 </span>
               )}
-              <span className="text-xl font-bold text-gray-900">
-                R$ {price.toFixed(2).replace('.', ',')}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold text-gray-900">
+                  R$ {price.toFixed(2).replace('.', ',')}
+                </span>
+                {discount > 0 && (
+                  <div className={`text-white text-xs font-bold px-2 py-0.5 rounded-full ${brandColors[product.brand] || 'bg-red-600'}`}>-{discount}%</div>
+                )}
+              </div>
             </div>
           ) : (
             /* Placeholder for ad cards to maintain layout */

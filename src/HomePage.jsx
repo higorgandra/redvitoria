@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ShoppingBag, X, MapPin, Check, Package, ChevronLeft, ChevronRight, Instagram, ChevronDown, ArrowUpDown } from 'lucide-react';
 import LogoSlider from './LogoSlider';
 import FeaturesSection from './FeaturesSection';
+import FilterModal from './FilterModal'; // Importar o novo componente
 import ProductCard from './ProductCard';
 import { db } from './firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -21,8 +22,7 @@ const brandColors = {
 const HomePage = ({ cart, addToCart }) => {
     const [activeBrand, setActiveBrand] = useState('all');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
-    const [isPriceModalOpen, setIsPriceModalOpen] = useState(false); // Estado para o modal de preço
+    const [activeModal, setActiveModal] = useState(null); // 'brand', 'price', ou null
     const [showNotification, setShowNotification] = useState(false);
     const [heroImageIndex, setHeroImageIndex] = useState(0);
     const [products, setProducts] = useState([]);
@@ -67,7 +67,7 @@ const HomePage = ({ cart, addToCart }) => {
   
     // Efeito para bloquear o scroll do body quando um modal/menu está aberto
     useEffect(() => {
-      if (isMenuOpen || isBrandModalOpen || isPriceModalOpen) {
+      if (isMenuOpen || activeModal) {
         document.body.classList.add('overflow-hidden');
       } else {
         document.body.classList.remove('overflow-hidden');
@@ -76,7 +76,7 @@ const HomePage = ({ cart, addToCart }) => {
       return () => {
         document.body.classList.remove('overflow-hidden');
       };
-    }, [isMenuOpen, isBrandModalOpen, isPriceModalOpen]);
+    }, [isMenuOpen, activeModal]);
   
     // Reseta para a primeira página sempre que a marca ativa for alterada
     useEffect(() => {
@@ -357,7 +357,7 @@ const HomePage = ({ cart, addToCart }) => {
 
                 {/* Botão para abrir o modal de marcas */}
                 <button 
-                  onClick={() => setIsBrandModalOpen(true)}
+                  onClick={() => setActiveModal('brand')}
                   className={`px-5 py-2 rounded-full border text-sm font-bold whitespace-nowrap transition flex items-center gap-2
                     ${activeBrand !== 'all' 
                       ? 'bg-gray-900 text-white border-gray-900' 
@@ -371,7 +371,7 @@ const HomePage = ({ cart, addToCart }) => {
 
                 {/* Botão para abrir o modal de preço */}
                 <button 
-                  onClick={() => setIsPriceModalOpen(true)}
+                  onClick={() => setActiveModal('price')}
                   className={`px-5 py-2 rounded-full border text-sm font-bold whitespace-nowrap transition flex items-center gap-2
                     ${priceSort 
                       ? 'bg-gray-900 text-white border-gray-900' 
@@ -418,67 +418,55 @@ const HomePage = ({ cart, addToCart }) => {
           </div>
         </section>
 
-        {/* Modal de Filtro de Marcas */}
-        {isBrandModalOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4" onClick={() => setIsBrandModalOpen(false)}>
-                <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="font-bold text-xl text-gray-800">Filtrar por Marca</h3>
-                      <button onClick={() => setIsBrandModalOpen(false)} className="p-2 rounded-full hover:bg-gray-100">
-                          <X size={20} />
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        {brands.filter(b => b.value !== 'all').map(brand => (
-                            <button
-                                key={brand.value}
-                                onClick={() => {
-                                    setActiveBrand(brand.value);
-                                    setIsBrandModalOpen(false);
-                                }}
-                                className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === brand.value ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
-                            >
-                                {brand.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        )}
-  
-        {/* Modal de Filtro de Preço */}
-        {isPriceModalOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4" onClick={() => setIsPriceModalOpen(false)}>
-                <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="font-bold text-xl text-gray-800">Ordenar por Preço</h3>
-                      <button onClick={() => setIsPriceModalOpen(false)} className="p-2 rounded-full hover:bg-gray-100">
-                          <X size={20} />
-                      </button>
-                    </div>
-                    <div className="flex flex-col gap-3">
-                        <button
-                            onClick={() => { setPriceSort(null); setIsPriceModalOpen(false); }}
-                            className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${priceSort === null ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
-                        >
-                            Nenhum
-                        </button>
-                        <button
-                            onClick={() => { setPriceSort('asc'); setIsPriceModalOpen(false); }}
-                            className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${priceSort === 'asc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
-                        >
-                            Menor Preço
-                        </button>
-                        <button
-                            onClick={() => { setPriceSort('desc'); setIsPriceModalOpen(false); }}
-                            className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${priceSort === 'desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
-                        >
-                            Maior Preço
-                        </button>
-                    </div>
-                </div>
-            </div>
-        )}
+        {/* Modal de Filtro de Marcas (Refatorado) */}
+        <FilterModal
+          isOpen={activeModal === 'brand'}
+          onClose={() => setActiveModal(null)}
+          title="Filtrar por Marca"
+        >
+          <div className="grid grid-cols-2 gap-3">
+            {brands.filter(b => b.value !== 'all').map(brand => (
+              <button
+                key={brand.value}
+                onClick={() => {
+                  setActiveBrand(brand.value);
+                  setActiveModal(null);
+                }}
+                className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === brand.value ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
+              >
+                {brand.label}
+              </button>
+            ))}
+          </div>
+        </FilterModal>
+
+        {/* Modal de Filtro de Preço (Refatorado) */}
+        <FilterModal
+          isOpen={activeModal === 'price'}
+          onClose={() => setActiveModal(null)}
+          title="Ordenar por Preço"
+        >
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => { setPriceSort(null); setActiveModal(null); }}
+              className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${priceSort === null ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
+            >
+              Nenhum
+            </button>
+            <button
+              onClick={() => { setPriceSort('asc'); setActiveModal(null); }}
+              className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${priceSort === 'asc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
+            >
+              Menor Preço
+            </button>
+            <button
+              onClick={() => { setPriceSort('desc'); setActiveModal(null); }}
+              className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${priceSort === 'desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
+            >
+              Maior Preço
+            </button>
+          </div>
+        </FilterModal>
 
         <LogoSlider />
   
