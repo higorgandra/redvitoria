@@ -512,7 +512,7 @@ const HomePage = ({ cart, addToCart }) => {
             </a>
           </div>
           <div className="bg-red-100 text-center text-red-900 text-xs py-6 px-4">
-            <p>&copy; {copyrightYear} RedVitoria. Revendedora oficial independente Avon, Natura e O Boticário. Entrega grátis válida apenas para Salvador/BA.</p>
+            <p>&copy; {copyrightYear} RedVitoria. Revendedora oficial independente.</p>
           </div>
         </footer>
       </div>
