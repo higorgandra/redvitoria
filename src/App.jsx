@@ -12,10 +12,14 @@ import SocialPage from './SocialPage.jsx'; // Importar a nova página
 import { AuthProvider } from './AuthContext.jsx';
 
 const ScrollToTop = () => {
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation();
+
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
+    // Só rola para o topo se não for uma navegação "para trás"
+    if (state?.preventScroll !== true) {
+      window.scrollTo(0, 0);
+    }
+  }, [pathname, state]);
   return null;
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingBag, X, MapPin, Check, Package, ChevronLeft, ChevronRight, Instagram, ChevronDown, ArrowUpDown } from 'lucide-react';
+import { ShoppingBag, X, MapPin, Check, Package, ChevronLeft, ChevronRight, Instagram, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import LogoSlider from './LogoSlider';
 import FeaturesSection from './FeaturesSection';
 import FilterModal from './FilterModal'; // Importar o novo componente
@@ -80,7 +80,7 @@ const HomePage = ({ cart, addToCart }) => {
         document.body.classList.remove('overflow-hidden');
       };
     }, [isMenuOpen, activeModal]);
-  
+
     // Reseta para a primeira página sempre que a marca ativa for alterada
     useEffect(() => {
       setCurrentPage(1);
@@ -113,7 +113,7 @@ const HomePage = ({ cart, addToCart }) => {
     });
   
     // Lógica da Paginação
-    const productsPerPage = 12;
+    const productsPerPage = 10;
     const totalPages = Math.ceil(finalProductList.length / productsPerPage);
     const indexOfLastProduct = currentPage * productsPerPage;
     const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
@@ -123,7 +123,12 @@ const HomePage = ({ cart, addToCart }) => {
         if (newPage > 0 && newPage <= totalPages) setCurrentPage(newPage);
     };
 
-    const handleBottomPageChange = (newPage) => {
+    const handleBottomPageChange = (event, newPage) => {
+        // Remove o foco do botão clicado para resetar a aparência
+        if (event && event.currentTarget) {
+            event.currentTarget.blur();
+        }
+
         if (newPage > 0 && newPage <= totalPages) {
             setCurrentPage(newPage);
 
@@ -241,6 +246,16 @@ const HomePage = ({ cart, addToCart }) => {
                           }`}
                         />
                       ))}
+                      {/* Tag de Status "Em Estoque" para Mobile */}
+                      <div className="absolute -bottom-4 -left-4 bg-white p-3 rounded-xl shadow-xl border border-gray-100 flex items-center gap-3 animate-bounce-slow z-10">
+                        <div className="bg-green-100 p-2 rounded-full text-green-700">
+                          <Package size={20} />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 font-bold uppercase">Status</p>
+                          <p className="text-sm font-bold text-gray-900">Em Estoque</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -333,70 +348,45 @@ const HomePage = ({ cart, addToCart }) => {
                 <p className="text-gray-500 mt-1">Itens disponíveis agora em Salvador.</p>
               </div>
               
-              <div className="flex flex-wrap justify-center md:justify-end gap-x-4 gap-y-2 mt-4 md:mt-0 w-full md:w-auto items-center">
-                {/* Controles de Paginação no Topo */}
-                {totalPages > 1 && (
-                  <div className="hidden md:flex items-center gap-3">
-                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="p-2 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <ChevronLeft size={18} />
-                    </button>
-                    <span className="text-sm font-semibold text-gray-600 whitespace-nowrap">
-                      Página {currentPage} de {totalPages}
-                    </span>
-                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-2 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <ChevronRight size={18} />
-                    </button>
-                  </div>
-                )}
-                {/* Botão "Todos" */}
-                <button 
-                  onClick={() => setActiveBrand('all')}
-                  className={`px-5 py-2 rounded-full border text-sm font-bold whitespace-nowrap transition
-                    ${activeBrand === 'all' 
-                      ? 'bg-gray-900 text-white border-gray-900' 
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-900'}`}
-                >
-                  Todos
-                </button>
-
-                {/* Botão para abrir o modal de marcas */}
-                <button 
-                  onClick={() => setActiveModal('brand')}
-                  className={`px-5 py-2 rounded-full border text-sm font-bold whitespace-nowrap transition flex items-center gap-2
-                    ${activeBrand !== 'all' 
-                      ? 'bg-gray-900 text-white border-gray-900' 
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-900'}`}
-                >
-                  <span className="normal-case">
-                    {activeBrand === 'all' ? 'Selecionar Marca' : `Marca: ${selectedBrandLabel}`}
-                  </span>
-                  <ChevronDown size={16} />
-                </button>
-
+              {/* Nova Barra de Filtros */}
+              <div className="flex justify-center md:justify-end gap-2 mt-4 md:mt-0 w-full md:w-auto">
                 {/* Botão para abrir o modal de preço */}
                 <button 
                   onClick={() => setActiveModal('price')}
-                  className={`px-5 py-2 rounded-full border text-sm font-bold whitespace-nowrap transition flex items-center gap-2
-                    ${priceSort 
-                      ? 'bg-gray-900 text-white border-gray-900' 
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-900'}`}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50"
                 >
-                  <span className="normal-case">
-                    {priceSort === 'asc' ? 'Menor Preço' : priceSort === 'desc' ? 'Maior Preço' : 'Preço'}
-                  </span>
                   <ArrowUpDown size={16} />
+                  <span>{priceSort === 'asc' ? 'Menor Preço' : priceSort === 'desc' ? 'Maior Preço' : 'Ordenar'}</span>
+                </button>
+                {/* Botão para abrir o modal de marcas */}
+                <button 
+                  onClick={() => setActiveModal('brand')}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50"
+                >
+                  <SlidersHorizontal size={16} />
+                  <span>{activeBrand === 'all' ? 'Filtrar' : selectedBrandLabel}</span>
                 </button>
               </div>
             </div>
   
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {loading ? (
-                <p className="col-span-full text-center py-8 text-gray-500">Carregando vitrine...</p>
+                // Exibe "esqueletos" dos cards para manter a altura da página durante o carregamento
+                Array.from({ length: 12 }).map((_, index) => (
+                  <div key={index} className="bg-white rounded-lg shadow-sm p-3 animate-pulse">
+                    <div className="aspect-square bg-gray-200 rounded-t-lg mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                    <div className="h-5 bg-gray-200 rounded w-3/4 mb-4"></div>
+                    <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
+                    <div className="h-10 bg-gray-200 rounded-full mt-auto"></div>
+                  </div>
+                ))
               ) : (
                 currentProducts.map((product) => (
                   <ProductCard 
                     key={product.id}
                     product={product}
+                    cart={cart}
                     brandColors={brandColors}
                     onAddToCart={handleAddToCart} // onAddToCart é passado para o ProductCard
                     isHighlighted={false} // Não precisamos mais disso
@@ -408,13 +398,13 @@ const HomePage = ({ cart, addToCart }) => {
             {/* Pagination Controls for HomePage */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center mt-8 gap-4">
-                  <button onClick={() => handleBottomPageChange(currentPage - 1)} disabled={currentPage === 1} className="p-3 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                  <button onClick={(e) => handleBottomPageChange(e, currentPage - 1)} disabled={currentPage === 1} className="p-3 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm focus:ring-0 [-webkit-tap-highlight-color:transparent]">
                       <ChevronLeft size={20} />
                   </button>
                   <span className="text-sm font-semibold text-gray-700">
                       Página {currentPage} de {totalPages}
                   </span>
-                  <button onClick={() => handleBottomPageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-3 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                  <button onClick={(e) => handleBottomPageChange(e, currentPage + 1)} disabled={currentPage === totalPages} className="p-3 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm focus:ring-0 [-webkit-tap-highlight-color:transparent]">
                       <ChevronRight size={20} />
                   </button>
               </div>
@@ -430,6 +420,15 @@ const HomePage = ({ cart, addToCart }) => {
           title="Filtrar por Marca"
         >
           <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => {
+                setActiveBrand('all');
+                setActiveModal(null);
+              }}
+              className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === 'all' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
+            >
+              Todos
+            </button>
             {brands.filter(b => b.value !== 'all').map(brand => (
               <button
                 key={brand.value}

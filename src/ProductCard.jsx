@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { ShoppingBag, Send, Share2, Check } from 'lucide-react';
 import { incrementMetric } from './firebase'; // 1. Importar a função
 
-const ProductCard = ({ product, brandColors, onAddToCart, isHighlighted }) => {
+const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted }) => {
   const [hasCopied, setHasCopied] = useState(false);
 
   const { ref, inView } = useInView({
@@ -29,6 +29,13 @@ const ProductCard = ({ product, brandColors, onAddToCart, isHighlighted }) => {
   const fullPrice = getNumericPrice(product.fullPrice || price * 2); // Usa fullPrice ou um valor calculado
   const discount = fullPrice > price ? Math.round(((fullPrice - price) / fullPrice) * 100) : 0;
   const isAd = product.status === 'Anúncio';
+
+  // Verifica se o item está no carrinho e se a quantidade atingiu o estoque
+  const itemInCart = cart.find(item => item.id === product.id);
+  const quantityInCart = itemInCart ? itemInCart.quantity : 0;
+  const isStockLimitReached = !isAd && product.stock > 0 && quantityInCart >= product.stock;
+  // Verifica se o produto está sem estoque (além do status, verifica a quantidade)
+  const isOutOfStock = !isAd && product.stock <= 0;
 
   // 2. Criar uma função que chama as duas ações
   const handleAddToCartClick = () => {
@@ -110,7 +117,12 @@ const ProductCard = ({ product, brandColors, onAddToCart, isHighlighted }) => {
         <div className="flex-grow">
           <Link to={`/produto/${product.id}`} className="block">
             <h3 className="text-sm text-gray-500 capitalize mb-1">{product.brand}</h3>
-            <h4 className={`font-semibold text-gray-800 text-base leading-tight mb-2 h-12 line-clamp-2 hover:text-[#8B0000] transition-colors ${isAd && 'text-blue-700'}`}>{product.name}</h4>
+            <h4 
+              className={`font-semibold text-gray-800 text-base leading-tight mb-2 h-12 hover:text-[#8B0000] transition-colors ${isAd && 'text-blue-700'}`}
+              title={product.name}
+            >
+              {isAd ? product.name : (product.name.length > 17 ? `${product.name.substring(0, 17)}...` : product.name)}
+            </h4>
           </Link>
           
           {!isAd ? (
@@ -144,20 +156,31 @@ const ProductCard = ({ product, brandColors, onAddToCart, isHighlighted }) => {
             target="_blank"
             onClick={handleAdClick} // Adiciona o registro do clique
             rel="noopener noreferrer"
-            className="w-full mt-auto bg-blue-600 text-white border border-blue-600 hover:bg-blue-700 font-medium h-10 px-4 rounded-full transition-colors duration-300 flex items-center justify-center gap-2 text-sm lowercase"
+            className="w-full mt-auto bg-blue-600 text-white border border-blue-600 hover:bg-blue-700 font-medium h-10 px-4 rounded-full transition-colors duration-300 flex items-center justify-center gap-2 text-sm"
             title="Visitar Loja Natura"
           >
             <Send size={16} />
-            ver catálogo
+            Catálogo
           </a>
         ) : (
           <button 
-            onClick={handleAddToCartClick} // 3. Usar a nova função no botão
-            className="w-full mt-auto bg-[#8B0000] text-white hover:bg-[#650000] font-bold h-10 px-4 rounded-full transition-colors duration-300 flex items-center justify-center gap-2 text-sm lowercase shadow-lg shadow-[#B22222]/30"
-            title="adicionar à sacola"
+            onClick={handleAddToCartClick}
+            disabled={isStockLimitReached || isOutOfStock}
+            className={`w-full mt-auto font-bold h-10 px-4 rounded-full transition-colors duration-300 flex items-center justify-center gap-2 text-sm lowercase shadow-lg
+              ${isStockLimitReached 
+                ? 'bg-gray-200 text-gray-500 cursor-default shadow-none' 
+                : isOutOfStock
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none'
+                  : 'bg-[#8B0000] text-white hover:bg-[#650000] shadow-[#B22222]/30'
+              }`}
+            title={isStockLimitReached ? "Produto já está no carrinho" : isOutOfStock ? "Produto sem estoque" : "Adicionar ao carrinho"}
           >
-            <ShoppingBag size={16} />
-            adicionar à sacola
+            {isStockLimitReached ? <Check size={16} /> : <ShoppingBag size={16} />}
+            {isStockLimitReached 
+              ? 'no carrinho' 
+              : isOutOfStock 
+                ? 'esgotado' 
+                : 'carrinho'}
           </button>
         )}
       </div>

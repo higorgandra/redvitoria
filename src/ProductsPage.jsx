@@ -120,7 +120,6 @@ const initialProductState = {
     status: 'Ativo',
     slug: '', // Novo campo para o link
     description: '',
-    howToUse: '',
     discountPercentage: '',
 };
 
@@ -322,7 +321,6 @@ const ProductsPage = () => {
             fullPrice: fullPrice,
             description: product.description || '',
             slug: product.slug || '', // Adiciona o slug ao formulário de edição
-            howToUse: product.howToUse || '',
             link: product.link || '', // Adiciona o campo link
             discountPercentage: discountPercentage > 0 ? discountPercentage.toFixed(0) : '',
         });
@@ -448,7 +446,6 @@ const ProductsPage = () => {
             discountPercentage: parseFloat(editFormData.discountPercentage) || 0,
             link: editFormData.link || '',
             description: editFormData.description || '',
-            howToUse: editFormData.howToUse || '',
             status: status,
         };
 
@@ -506,7 +503,6 @@ const ProductsPage = () => {
                 sku: generatedSku, // Adiciona o SKU gerado ao produto
                 discountPercentage: parseFloat(newProductData.discountPercentage) || 0,
                 description: newProductData.description || '',
-                howToUse: newProductData.howToUse || '',
                 status: (isNaN(stock) || stock === 0) ? 'Sem Estoque' : 'Ativo',
                 createdAt: serverTimestamp()
             };
@@ -921,10 +917,6 @@ const ProductsPage = () => {
                                     <label className="text-sm font-medium text-gray-700">Descrição Detalhada</label>
                                     <textarea name="description" value={newProductData.description} onChange={handleNewProductChange} rows="4" className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" placeholder="Fale sobre os benefícios, fragrância, etc."></textarea>
                                 </div>
-                                <div className="md:col-span-2">
-                                    <label className="text-sm font-medium text-gray-700">Como Usar</label>
-                                    <textarea name="howToUse" value={newProductData.howToUse} onChange={handleNewProductChange} rows="3" className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50" placeholder="Instruções de aplicação do produto."></textarea>
-                                </div>
                             </div>
                         </div>
 
@@ -1023,10 +1015,6 @@ const ProductsPage = () => {
                                         <div className="md:col-span-2">
                                             <label className="text-sm font-medium text-gray-700">Descrição Detalhada</label>
                                             <textarea name="description" value={editFormData.description || ''} onChange={handleEditFormChange} rows="4" className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50"></textarea>
-                                        </div>
-                                        <div className="md:col-span-2">
-                                            <label className="text-sm font-medium text-gray-700">Como Usar</label>
-                                            <textarea name="howToUse" value={editFormData.howToUse || ''} onChange={handleEditFormChange} rows="3" className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50"></textarea>
                                         </div>
                                     </>
                                 ) : (

@@ -134,7 +134,7 @@ const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
 
             {/* Resumo do Pedido */}
             <div className="lg:col-span-1">
-              <div className="bg-white p-6 rounded-lg shadow-sm sticky top-28">
+              <div className="bg-white p-6 rounded-lg shadow-sm sticky top-24">
                 <h3 className="text-lg font-semibold border-b pb-4 mb-4">Resumo do Pedido</h3>
                 <div className="space-y-2">
                   {totalDiscount > 0 && (
