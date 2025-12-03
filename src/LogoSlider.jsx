@@ -11,9 +11,6 @@ const logos = [
   { name: 'Eudora', src: 'https://i.postimg.cc/j56jYp8W/eudorapng.png' },
 ];
 
-// Duplicamos os logos para criar o efeito de loop infinito
-const extendedLogos = [...logos, ...logos];
-
 const LogoSlider = () => {
   return (
     <section className="bg-white py-12">
@@ -22,9 +19,16 @@ const LogoSlider = () => {
           Marcas que você ama
         </h3>
         <div className="relative overflow-hidden whitespace-nowrap [mask-image:_linear-gradient(to_right,transparent_0,_black_128px,_black_calc(100%-128px),transparent_100%)]">
-          <div className="inline-block animate-[slide_80s_linear_infinite]">
-            {extendedLogos.map((logo, index) => (
-              <div key={index} className="inline-flex items-center justify-center w-48 h-16 mx-8">
+          <div className="flex animate-[slide_30s_linear_infinite]">
+            {/* Renderiza o primeiro conjunto de logos */}
+            {logos.map((logo, index) => (
+              <div key={`logo1-${index}`} className="flex-shrink-0 w-48 mx-8 flex items-center justify-center">
+                <img src={logo.src} alt={logo.name} className="max-h-8 w-auto object-contain grayscale opacity-60" />
+              </div>
+            ))}
+            {/* Renderiza o segundo conjunto de logos para o loop contínuo */}
+            {logos.map((logo, index) => (
+              <div key={`logo2-${index}`} className="flex-shrink-0 w-48 mx-8 flex items-center justify-center">
                 <img src={logo.src} alt={logo.name} className="max-h-8 w-auto object-contain grayscale opacity-60" />
               </div>
             ))}
