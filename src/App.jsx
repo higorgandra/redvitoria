@@ -68,8 +68,18 @@ const App = () => {
     setCart(prevCart => prevCart.filter(item => item.id !== productId));
   };
 
+  // Função de atualização de quantidade ajustada para validar o estoque
   const updateQuantity = (productId, delta) => {
-    setCart(prevCart => prevCart.map(item => item.id === productId ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item).filter(item => item.quantity > 0));
+    setCart(prevCart => prevCart.map(item => {
+      if (item.id === productId) {
+        // Calcula a nova quantidade
+        const newQuantity = item.quantity + delta;
+        // Garante que a quantidade seja no mínimo 1 e no máximo o estoque disponível
+        const validatedQuantity = Math.max(1, Math.min(newQuantity, item.stock));
+        return { ...item, quantity: validatedQuantity };
+      }
+      return item;
+    }));
   };
 
   const clearCart = () => setCart([]);

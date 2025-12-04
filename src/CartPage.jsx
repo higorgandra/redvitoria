@@ -113,13 +113,20 @@ const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
                             <Minus size={16} />
                           </button>
                           <span className="px-4 font-medium">{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.id, 1)} className="p-2 text-gray-500 hover:text-black">
+                          <button 
+                            onClick={() => updateQuantity(item.id, 1)} 
+                            className="p-2 text-gray-500 hover:text-black disabled:opacity-50"
+                            disabled={item.quantity >= item.stock}
+                          >
                             <Plus size={16} />
                           </button>
                         </div>
                         <button onClick={() => removeFromCart(item.id)} className="font-medium text-red-600 hover:text-red-800 flex items-center gap-1">
                           <Trash2 size={16} /> Remover
                         </button>
+                      </div>
+                      {item.quantity >= item.stock && (
+                        <p className="text-xs text-red-600 mt-2">Limite de estoque atingido.</p>
                       </div>
                     </div>
                   </li>

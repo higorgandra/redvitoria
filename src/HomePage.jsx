@@ -28,9 +28,9 @@ const HomePage = ({ cart, addToCart }) => {
     const [activeModal, setActiveModal] = useState(null); // 'brand', 'price', ou null
     const [showNotification, setShowNotification] = useState(false);
     const [heroImageIndex, setHeroImageIndex] = useState(0);
-    const [products, setProducts] = useState([]);
+    const [products, setProducts] = useState([]); // Estado para ordenação: 'price_asc', 'price_desc', 'discount_desc' ou null
     const [loading, setLoading] = useState(true);
-    const [priceSort, setPriceSort] = useState(null); // Estado para ordenação: 'asc', 'desc', ou null
+    const [sortBy, setSortBy] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
 
     // Efeito para buscar os produtos do Firestore
@@ -86,18 +86,41 @@ const HomePage = ({ cart, addToCart }) => {
       setCurrentPage(1);
     }, [activeBrand]);
 
-    // Aplica a ordenação por preço, se definida
+    // Função auxiliar para calcular o desconto
+    const calculateDiscount = (product) => {
+        const getNumericPrice = (priceValue) => {
+            if (typeof priceValue === 'number') return priceValue;
+            if (typeof priceValue === 'string') {
+                const numericPrice = parseFloat(priceValue.replace('R$', '').replace('.', '').replace(',', '.').trim());
+                return isNaN(numericPrice) ? 0 : numericPrice;
+            }
+            return 0;
+        };
+
+        const price = getNumericPrice(product.price);
+        const fullPrice = getNumericPrice(product.fullPrice || price * 2);
+
+        if (fullPrice > price) {
+            return Math.round(((fullPrice - price) / fullPrice) * 100);
+        }
+        return 0;
+    };
+
+    // Aplica a ordenação, se definida
     const sortedProducts = [...products].sort((a, b) => {
-      // Ignora produtos do tipo 'Anúncio' da ordenação de preço
-      if (a.status === 'Anúncio' || b.status === 'Anúncio') return 0;
-      if (priceSort === 'asc') {
-        return a.price - b.price;
-      }
-      if (priceSort === 'desc') {
-        return b.price - a.price;
-      }
-      // Se não houver ordenação de preço, mantém a ordem padrão (pode ser por data de criação, etc.)
-      return 0;
+        if (a.status === 'Anúncio' || b.status === 'Anúncio') return 0;
+
+        switch (sortBy) {
+            case 'price_asc':
+                return a.price - b.price;
+            case 'price_desc':
+                return b.price - a.price;
+            case 'discount_desc':
+                return calculateDiscount(b) - calculateDiscount(a);
+            default:
+                // Ordenação padrão (pode ser por data de criação, etc.)
+                return 0;
+        }
     });
 
     // Filtra os produtos pela marca selecionada APÓS a ordenação
@@ -356,7 +379,12 @@ const HomePage = ({ cart, addToCart }) => {
                   className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50"
                 >
                   <ArrowUpDown size={16} />
-                  <span>{priceSort === 'asc' ? 'Menor Preço' : priceSort === 'desc' ? 'Maior Preço' : 'Ordenar'}</span>
+                  <span>
+                    {sortBy === 'price_asc' ? 'Menor Preço' 
+                    : sortBy === 'price_desc' ? 'Maior Preço' 
+                    : sortBy === 'discount_desc' ? 'Maior Desconto' 
+                    : 'Ordenar'}
+                  </span>
                 </button>
                 {/* Botão para abrir o modal de marcas */}
                 <button 
@@ -448,26 +476,32 @@ const HomePage = ({ cart, addToCart }) => {
         <FilterModal
           isOpen={activeModal === 'price'}
           onClose={() => setActiveModal(null)}
-          title="Ordenar por Preço"
+          title="Ordenar por"
         >
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => { setPriceSort(null); setActiveModal(null); }}
-              className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${priceSort === null ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
+              onClick={() => { setSortBy(null); setActiveModal(null); }}
+              className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === null ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
-              Nenhum
+              Padrão
             </button>
             <button
-              onClick={() => { setPriceSort('asc'); setActiveModal(null); }}
-              className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${priceSort === 'asc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
+              onClick={() => { setSortBy('price_asc'); setActiveModal(null); }}
+              className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'price_asc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Menor Preço
             </button>
             <button
-              onClick={() => { setPriceSort('desc'); setActiveModal(null); }}
-              className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${priceSort === 'desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
+              onClick={() => { setSortBy('price_desc'); setActiveModal(null); }}
+              className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'price_desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Maior Preço
+            </button>
+            <button
+              onClick={() => { setSortBy('discount_desc'); setActiveModal(null); }}
+              className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'discount_desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
+            >
+              Maior Desconto
             </button>
           </div>
         </FilterModal>
