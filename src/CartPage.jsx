@@ -127,7 +127,7 @@ const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
                       </div>
                       {item.quantity >= item.stock && (
                         <p className="text-xs text-red-600 mt-2">Limite de estoque atingido.</p>
-                      </div>
+                      )}
                     </div>
                   </li>
                 ))}
