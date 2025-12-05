@@ -21,20 +21,16 @@ const brandColors = {
 
 const HomePage = ({ cart, addToCart }) => {
     const location = useLocation();
-    const [activeBrand, setActiveBrand] = useState('all');
+    // 1. Restaurar o estado dos filtros e da página a partir do sessionStorage
+    const [activeBrand, setActiveBrand] = useState(() => sessionStorage.getItem('homeActiveBrand') || 'all');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [activeModal, setActiveModal] = useState(null); // 'brand', 'price', ou null
     const [showNotification, setShowNotification] = useState(false);
     const [heroImageIndex, setHeroImageIndex] = useState(0);
     const [products, setProducts] = useState([]); // Estado para ordenação: 'price_asc', 'price_desc', 'discount_desc' ou null
     const [loading, setLoading] = useState(true);
-    const [sortBy, setSortBy] = useState(null);
-    // Se houver um estado de scroll na navegação (vindo do "voltar"), usamos a página salva.
-    // Caso contrário, começamos da página 1.
+    const [sortBy, setSortBy] = useState(() => sessionStorage.getItem('homeSortBy') || null);
     const [currentPage, setCurrentPage] = useState(() => {
-        if (location.state?.fromProductDetail) {
-            return parseInt(sessionStorage.getItem('homeCurrentPage'), 10) || 1;
-        }
         return parseInt(sessionStorage.getItem('homeCurrentPage'), 10) || 1;
     });
 
@@ -95,6 +91,9 @@ const HomePage = ({ cart, addToCart }) => {
         isInitialMount.current = false;
       } else {
         // Se não for a montagem inicial, significa que um filtro foi realmente alterado.
+        // 2. Salva os novos filtros e reseta a página
+        sessionStorage.setItem('homeActiveBrand', activeBrand);
+        sessionStorage.setItem('homeSortBy', sortBy || ''); // Salva string vazia para null
         sessionStorage.removeItem('homeCurrentPage');
         setCurrentPage(1); // Reseta a página ao mudar o filtro
       }
