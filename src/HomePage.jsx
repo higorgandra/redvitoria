@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { ShoppingBag, X, MapPin, Check, Package, ChevronLeft, ChevronRight, Instagram, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import LogoSlider from './LogoSlider';
 import FeaturesSection from './FeaturesSection';
@@ -21,8 +21,6 @@ const brandColors = {
 
 const HomePage = ({ cart, addToCart }) => {
     const location = useLocation();
-    const navigate = useNavigate();
-
     const [activeBrand, setActiveBrand] = useState('all');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [activeModal, setActiveModal] = useState(null); // 'brand', 'price', ou null
@@ -31,7 +29,12 @@ const HomePage = ({ cart, addToCart }) => {
     const [products, setProducts] = useState([]); // Estado para ordenação: 'price_asc', 'price_desc', 'discount_desc' ou null
     const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState(null);
+    // Se houver um estado de scroll na navegação (vindo do "voltar"), usamos a página salva.
+    // Caso contrário, começamos da página 1.
     const [currentPage, setCurrentPage] = useState(() => {
+        if (location.state?.fromProductDetail) {
+            return parseInt(sessionStorage.getItem('homeCurrentPage'), 10) || 1;
+        }
         return parseInt(sessionStorage.getItem('homeCurrentPage'), 10) || 1;
     });
 
@@ -83,11 +86,18 @@ const HomePage = ({ cart, addToCart }) => {
       };
     }, [isMenuOpen, activeModal]);
 
-    // Reseta para a primeira página sempre que a marca ativa for alterada
+    // Efeito para resetar a paginação QUANDO os filtros mudam.
+    const isInitialMount = useRef(true);
     useEffect(() => {
-      // Limpa o estado salvo e reseta a página ao mudar o filtro.
-      sessionStorage.removeItem('homeCurrentPage');
-      setCurrentPage(1);
+      // Ignora a execução na montagem inicial do componente.
+      // Isso impede que o estado salvo no sessionStorage seja apagado ao voltar para a página.
+      if (isInitialMount.current) {
+        isInitialMount.current = false;
+      } else {
+        // Se não for a montagem inicial, significa que um filtro foi realmente alterado.
+        sessionStorage.removeItem('homeCurrentPage');
+        setCurrentPage(1); // Reseta a página ao mudar o filtro
+      }
     }, [activeBrand, sortBy]);
 
     // Função auxiliar para calcular o desconto
@@ -149,7 +159,7 @@ const HomePage = ({ cart, addToCart }) => {
     const handlePageChange = (newPage) => {
         if (newPage > 0 && newPage <= totalPages) {
             setCurrentPage(newPage);
-            sessionStorage.setItem('homeCurrentPage', newPage); // Salva a página atual
+            sessionStorage.setItem('homeCurrentPage', newPage);
         }
     };
 
@@ -161,7 +171,7 @@ const HomePage = ({ cart, addToCart }) => {
 
         if (newPage > 0 && newPage <= totalPages) {
             setCurrentPage(newPage);
-            sessionStorage.setItem('homeCurrentPage', newPage); // Salva a página atual
+            sessionStorage.setItem('homeCurrentPage', newPage);
 
             // Adiciona um pequeno delay para garantir que o DOM seja atualizado antes de rolar.
             setTimeout(() => {
@@ -454,7 +464,7 @@ const HomePage = ({ cart, addToCart }) => {
         >
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => { setActiveBrand('all'); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
+              onClick={() => { setActiveBrand('all'); setActiveModal(null); }} // O useEffect cuidará do reset
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === 'all' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Todos
@@ -462,7 +472,7 @@ const HomePage = ({ cart, addToCart }) => {
             {brands.filter(b => b.value !== 'all').map(brand => (
               <button
                 key={brand.value}
-                onClick={() => { setActiveBrand(brand.value); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
+                onClick={() => { setActiveBrand(brand.value); setActiveModal(null); }} // O useEffect cuidará do reset
                 className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === brand.value ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
               >
                 {brand.label}
@@ -479,25 +489,25 @@ const HomePage = ({ cart, addToCart }) => {
         >
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => { setSortBy(null); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
+              onClick={() => { setSortBy(null); setActiveModal(null); }} // O useEffect cuidará do reset
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === null ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Padrão
             </button>
             <button
-              onClick={() => { setSortBy('price_asc'); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
+              onClick={() => { setSortBy('price_asc'); setActiveModal(null); }} // O useEffect cuidará do reset
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'price_asc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Menor Preço
             </button>
             <button
-              onClick={() => { setSortBy('price_desc'); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
+              onClick={() => { setSortBy('price_desc'); setActiveModal(null); }} // O useEffect cuidará do reset
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'price_desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Maior Preço
             </button>
             <button
-              onClick={() => { setSortBy('discount_desc'); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
+              onClick={() => { setSortBy('discount_desc'); setActiveModal(null); }} // O useEffect cuidará do reset
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'discount_desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Maior Desconto

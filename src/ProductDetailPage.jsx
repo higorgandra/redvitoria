@@ -62,8 +62,8 @@ const ProductDetailPage = ({ cart, addToCart }) => {
     };
 
     const handleGoBack = () => {
-        // Navega para a página anterior e passa um estado para impedir o scroll para o topo
-        navigate(-1, { state: { preventScroll: true } });
+        // Navega para a página anterior e passa um estado para indicar a origem
+        navigate(-1, { state: { fromProductDetail: true } });
     };
 
     const handleShare = async () => {
