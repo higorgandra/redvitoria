@@ -604,15 +604,11 @@ const ProductsPage = () => {
         return nameMatch || skuMatch;
     });
 
-    // Lógica da Paginação
-    const productsPerPage = 6; // Aumentado para 6 para incluir o anúncio
-    const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-    const indexOfLastProduct = currentPage * productsPerPage;
-    const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-    const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+    const productsPerPage = 10;
+    const currentProducts = filteredProducts.slice(0, currentPage * productsPerPage);
 
-    const handlePageChange = (newPage) => {
-        if (newPage > 0 && newPage <= totalPages) setCurrentPage(newPage);
+    const handleLoadMore = () => {
+        setCurrentPage(prevPage => prevPage + 1);
     };
 
     const brands = [
@@ -620,10 +616,7 @@ const ProductsPage = () => {
         { value: 'avon', label: 'Avon' },
         { value: 'boticario', label: 'Boticário' },
         { value: 'eudora', label: 'Eudora' },
-        { value: 'loccitane-au-bresil', label: 'L`Occitane au Brésil' },
         { value: 'natura', label: 'Natura' },
-        { value: 'oui-paris', label: 'O.U.i Paris' },
-        { value: 'quem-disse-berenice', label: 'Quem disse, Berenice?' },
     ];
     return (
         <div className="p-6">
@@ -741,22 +734,16 @@ const ProductsPage = () => {
                 </div>
 
                 {/* Pagination Controls */}
-                <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
-                    <span className="text-sm text-gray-600">
-                        Mostrando {Math.min(indexOfFirstProduct + 1, filteredProducts.length)} a {Math.min(indexOfLastProduct, filteredProducts.length)} de {filteredProducts.length} produtos
-                    </span>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="p-2 rounded-md border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <ChevronLeft size={16} />
-                        </button>
-                        <span className="text-sm font-medium text-gray-700">
-                            Página {currentPage} de {totalPages > 0 ? totalPages : 1}
-                        </span>
-                        <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages || totalPages === 0} className="p-2 rounded-md border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <ChevronRight size={16} />
+                {currentProducts.length < filteredProducts.length && (
+                    <div className="mt-6 pt-4 border-t border-gray-200 text-center">
+                        <button
+                            onClick={handleLoadMore}
+                            className="px-6 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50"
+                        >
+                            Carregar mais
                         </button>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Brand Filter Popup */}
@@ -890,11 +877,8 @@ const ProductsPage = () => {
                                     <select name="brand" value={newProductData.brand} onChange={handleNewProductChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50 capitalize">
                                         <option value="boticario">Boticário</option>
                                         <option value="eudora">Eudora</option>
-                                        <option value="loccitane-au-bresil">L’Occitane au Brésil</option>
                                         <option value="natura">Natura</option>
                                         <option value="avon">Avon</option>
-                                        <option value="oui-paris">O.U.i Paris</option>
-                                        <option value="quem-disse-berenice">Quem disse, Berenice?</option>
                                     </select>
                                 </div>
                                 <div>
@@ -981,11 +965,8 @@ const ProductsPage = () => {
                                         <div>
                                             <label className="text-sm font-medium text-gray-700">Marca</label>
                                             <select name="brand" value={editFormData.brand || ''} onChange={handleEditFormChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50 capitalize">
-                                                <option value="boticario">Boticário</option>                                                <option value="eudora">Eudora</option>
-                                                <option value="loccitane-au-bresil">L’Occitane au Brésil</option>
-                                                <option value="natura">Natura</option>                                                <option value="avon">Avon</option>
-                                                <option value="oui-paris">O.U.i Paris</option>
-                                                <option value="quem-disse-berenice">Quem disse, Berenice?</option>
+                                                <option value="boticario">Boticário</option><option value="eudora">Eudora</option>
+                                                <option value="natura">Natura</option><option value="avon">Avon</option>
                                             </select>
                                         </div>
                                         <div>

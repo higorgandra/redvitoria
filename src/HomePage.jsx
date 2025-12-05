@@ -135,40 +135,11 @@ const HomePage = ({ cart, addToCart }) => {
       return 0; // Mantém a ordem para os outros produtos
     });
   
-    // Lógica da Paginação
     const productsPerPage = 10;
-    const totalPages = Math.ceil(finalProductList.length / productsPerPage);
-    const indexOfLastProduct = currentPage * productsPerPage;
-    const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-    const currentProducts = finalProductList.slice(indexOfFirstProduct, indexOfLastProduct);
+    const currentProducts = finalProductList.slice(0, currentPage * productsPerPage);
 
-    const handlePageChange = (newPage) => {
-        if (newPage > 0 && newPage <= totalPages) setCurrentPage(newPage);
-    };
-
-    const handleBottomPageChange = (event, newPage) => {
-        // Remove o foco do botão clicado para resetar a aparência
-        if (event && event.currentTarget) {
-            event.currentTarget.blur();
-        }
-
-        if (newPage > 0 && newPage <= totalPages) {
-            setCurrentPage(newPage);
-
-            // Adiciona um pequeno delay para garantir que o DOM seja atualizado antes de rolar.
-            // Isso corrige o comportamento inconsistente em dispositivos móveis.
-            setTimeout(() => {
-                const targetElement = document.querySelector('#estoque');
-                if (targetElement) {
-                    const headerElement = document.querySelector('nav');
-                    const headerOffset = headerElement ? headerElement.offsetHeight : 80;
-                    const elementPosition = targetElement.getBoundingClientRect().top;
-                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-                    window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-                }
-            }, 0); // O delay de 0ms é suficiente para empurrar a execução para o final da fila de eventos.
-        }
+    const handleLoadMore = () => {
+        setCurrentPage(prevPage => prevPage + 1);
     };
 
     const handleAddToCart = (product) => {
@@ -424,18 +395,15 @@ const HomePage = ({ cart, addToCart }) => {
             </div>
 
             {/* Pagination Controls for HomePage */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center mt-8 gap-4">
-                  <button onClick={(e) => handleBottomPageChange(e, currentPage - 1)} disabled={currentPage === 1} className="p-3 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm focus:ring-0 [-webkit-tap-highlight-color:transparent]">
-                      <ChevronLeft size={20} />
-                  </button>
-                  <span className="text-sm font-semibold text-gray-700">
-                      Página {currentPage} de {totalPages}
-                  </span>
-                  <button onClick={(e) => handleBottomPageChange(e, currentPage + 1)} disabled={currentPage === totalPages} className="p-3 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm focus:ring-0 [-webkit-tap-highlight-color:transparent]">
-                      <ChevronRight size={20} />
-                  </button>
-              </div>
+            {currentProducts.length < finalProductList.length && (
+                <div className="mt-12 text-center">
+                    <button
+                        onClick={handleLoadMore}
+                        className="bg-[#8B0000] text-white px-8 py-3 rounded-lg font-bold hover:bg-[#650000] transition shadow-lg shadow-[#B22222]/30"
+                    >
+                        Carregar mais
+                    </button>
+                </div>
             )}
 
           </div>
