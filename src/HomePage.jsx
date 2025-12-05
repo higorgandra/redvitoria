@@ -31,8 +31,7 @@ const HomePage = ({ cart, addToCart }) => {
     const [products, setProducts] = useState([]); // Estado para ordenação: 'price_asc', 'price_desc', 'discount_desc' ou null
     const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState(null);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [currentPage, setCurrentPage] = useState(() => { // Inicializa o estado buscando do sessionStorage ou usando 1 como padrão.
+    const [currentPage, setCurrentPage] = useState(() => {
         return parseInt(sessionStorage.getItem('homeCurrentPage'), 10) || 1;
     });
 
