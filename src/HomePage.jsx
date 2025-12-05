@@ -60,6 +60,23 @@ const HomePage = ({ cart, addToCart }) => {
       fetchProducts();
     }, []);
   
+    // Efeito para limpar os filtros em um hard refresh (F5)
+    useEffect(() => {
+      const navigationEntries = performance.getEntriesByType("navigation");
+      if (navigationEntries.length > 0 && navigationEntries[0].type === 'reload') {
+        // Limpa os estados salvos no sessionStorage
+        sessionStorage.removeItem('homeActiveBrand');
+        sessionStorage.removeItem('homeSortBy');
+        sessionStorage.removeItem('homeCurrentPage');
+
+        // Reseta o estado do componente para o padrão
+        setActiveBrand('all');
+        setSortBy(null);
+        setCurrentPage(1);
+      }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Executa apenas uma vez na montagem do componente
+
     // Efeito para alternar a imagem do hero
     useEffect(() => {
       if (products.length === 0) return;
