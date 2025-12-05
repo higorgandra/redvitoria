@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { db } from './firebase';
 import { doc, getDoc, collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
-import { ShoppingBag, ArrowLeft, Check, Loader2, Plus, Minus, ShieldCheck, AlertTriangle, Package } from 'lucide-react';
+import { ShoppingBag, ArrowLeft, Check, Loader2, Plus, Minus, ShieldCheck, AlertTriangle, Package, Share2 } from 'lucide-react';
 import ProductCard from './ProductCard'; // Para produtos relacionados
 
 const ProductDetailPage = ({ cart, addToCart }) => {
@@ -12,6 +12,7 @@ const ProductDetailPage = ({ cart, addToCart }) => {
     const [quantity, setQuantity] = useState(1);
     const [loading, setLoading] = useState(true);
     const [showNotification, setShowNotification] = useState(false);
+    const [shareFeedback, setShareFeedback] = useState('Compartilhar este produto');
     const navigate = useNavigate();
     const cartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -63,6 +64,34 @@ const ProductDetailPage = ({ cart, addToCart }) => {
     const handleGoBack = () => {
         // Navega para a página anterior e passa um estado para impedir o scroll para o topo
         navigate(-1, { state: { preventScroll: true } });
+    };
+
+    const handleShare = async () => {
+        // Garante que a função só execute se o produto já estiver carregado.
+        if (!product) return;
+
+        const shareData = {
+            title: product.name,
+            text: `Confira este produto na RedVitoria: ${product.name}`,
+            url: window.location.href
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (error) {
+                console.error('Erro ao usar a Web Share API:', error);
+            }
+        } else {
+            // Fallback para navegadores que não suportam a Web Share API
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                setShareFeedback('Link copiado!');
+                setTimeout(() => setShareFeedback('Compartilhar este produto'), 2000);
+            } catch (error) {
+                console.error('Erro ao copiar o link:', error);
+            }
+        }
     };
 
     const formatPrice = (price) => {
@@ -247,6 +276,17 @@ const ProductDetailPage = ({ cart, addToCart }) => {
                             <div className="mt-6 flex items-center justify-center gap-2 text-sm text-green-700">
                                 <ShieldCheck size={18} />
                                 <span className="font-semibold">Compra segura e produto original.</span>
+                            </div>
+
+                            {/* Botão de Compartilhar */}
+                            <div className="mt-6 text-center">
+                                <button
+                                    onClick={handleShare}
+                                    className="flex items-center justify-center gap-2 text-sm font-medium text-gray-500 hover:text-[#8B0000] transition-colors w-full py-2 rounded-lg hover:bg-gray-100"
+                                >
+                                    {shareFeedback === 'Link copiado!' ? <Check size={16} className="text-green-600" /> : <Share2 size={16} />}
+                                    {shareFeedback}
+                                </button>
                             </div>
                         </div>
                     </div>

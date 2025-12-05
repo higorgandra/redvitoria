@@ -31,6 +31,7 @@ const HomePage = ({ cart, addToCart }) => {
     const [products, setProducts] = useState([]); // Estado para ordenação: 'price_asc', 'price_desc', 'discount_desc' ou null
     const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState(null);
+    // Inicializa o estado buscando do sessionStorage ou usando 1 como padrão.
     const [currentPage, setCurrentPage] = useState(() => {
         return parseInt(sessionStorage.getItem('homeCurrentPage'), 10) || 1;
     });
@@ -85,6 +86,8 @@ const HomePage = ({ cart, addToCart }) => {
 
     // Reseta para a primeira página sempre que a marca ativa for alterada
     useEffect(() => {
+      // Limpa o estado salvo e reseta a página ao mudar o filtro.
+      sessionStorage.removeItem('homeCurrentPage');
       setCurrentPage(1);
     }, [activeBrand, sortBy]);
 
@@ -137,37 +140,13 @@ const HomePage = ({ cart, addToCart }) => {
       return 0; // Mantém a ordem para os outros produtos
     });
   
-    // Lógica da Paginação
     const productsPerPage = 10;
-    const totalPages = Math.ceil(finalProductList.length / productsPerPage);
-    const indexOfLastProduct = currentPage * productsPerPage;
-    const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-    const currentProducts = finalProductList.slice(indexOfFirstProduct, indexOfLastProduct);
+    const currentProducts = finalProductList.slice(0, currentPage * productsPerPage);
 
-    const handlePageChange = (newPage) => {
-        if (newPage > 0 && newPage <= totalPages) setCurrentPage(newPage);
-    };
-
-    const handleBottomPageChange = (event, newPage) => {
-        // Remove o foco do botão clicado para resetar a aparência
-        if (event && event.currentTarget) {
-            event.currentTarget.blur();
-        }
-
-        if (newPage > 0 && newPage <= totalPages) {
-            setCurrentPage(newPage);
-
-            // Adiciona um pequeno delay para garantir que o DOM seja atualizado antes de rolar.
-            setTimeout(() => {
-                const targetElement = document.querySelector('#estoque');
-                if (targetElement) {
-                    const headerOffset = document.querySelector('nav')?.offsetHeight || 80;
-                    const elementPosition = targetElement.getBoundingClientRect().top;
-                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                    window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-                }
-            }, 0);
-        }
+    const handleLoadMore = () => {
+        setCurrentPage(prevPage => prevPage + 1);
+        // Salva a nova página no sessionStorage
+        sessionStorage.setItem('homeCurrentPage', currentPage + 1);
     };
 
     const handleAddToCart = (product) => {
@@ -423,18 +402,15 @@ const HomePage = ({ cart, addToCart }) => {
             </div>
 
             {/* Pagination Controls for HomePage */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center mt-8 gap-4">
-                  <button onClick={(e) => handleBottomPageChange(e, currentPage - 1)} disabled={currentPage === 1} className="p-3 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm focus:ring-0 [-webkit-tap-highlight-color:transparent]">
-                      <ChevronLeft size={20} />
-                  </button>
-                  <span className="text-sm font-semibold text-gray-700">
-                      Página {currentPage} de {totalPages}
-                  </span>
-                  <button onClick={(e) => handleBottomPageChange(e, currentPage + 1)} disabled={currentPage === totalPages} className="p-3 rounded-full border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm focus:ring-0 [-webkit-tap-highlight-color:transparent]">
-                      <ChevronRight size={20} />
-                  </button>
-              </div>
+            {currentProducts.length < finalProductList.length && (
+                <div className="mt-12 text-center">
+                    <button
+                        onClick={handleLoadMore}
+                        className="bg-[#8B0000] text-white px-8 py-3 rounded-lg font-bold hover:bg-[#650000] transition shadow-lg shadow-[#B22222]/30"
+                    >
+                        Carregar mais
+                    </button>
+                </div>
             )}
 
           </div>
@@ -448,7 +424,11 @@ const HomePage = ({ cart, addToCart }) => {
         >
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => { setActiveBrand('all'); setActiveModal(null); }}
+              onClick={() => {
+                setActiveBrand('all');
+                sessionStorage.removeItem('homeCurrentPage'); // Limpa ao aplicar filtro
+                setActiveModal(null);
+              }}
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === 'all' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Todos
@@ -456,7 +436,11 @@ const HomePage = ({ cart, addToCart }) => {
             {brands.filter(b => b.value !== 'all').map(brand => (
               <button
                 key={brand.value}
-                onClick={() => { setActiveBrand(brand.value); setActiveModal(null); }}
+                onClick={() => {
+                  setActiveBrand(brand.value);
+                  sessionStorage.removeItem('homeCurrentPage'); // Limpa ao aplicar filtro
+                  setActiveModal(null);
+                }}
                 className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === brand.value ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
               >
                 {brand.label}
@@ -473,25 +457,25 @@ const HomePage = ({ cart, addToCart }) => {
         >
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => { setSortBy(null); setActiveModal(null); }}
+              onClick={() => { setSortBy(null); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === null ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Padrão
             </button>
             <button
-              onClick={() => { setSortBy('price_asc'); setActiveModal(null); }}
+              onClick={() => { setSortBy('price_asc'); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'price_asc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Menor Preço
             </button>
             <button
-              onClick={() => { setSortBy('price_desc'); setActiveModal(null); }}
+              onClick={() => { setSortBy('price_desc'); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'price_desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Maior Preço
             </button>
             <button
-              onClick={() => { setSortBy('discount_desc'); setActiveModal(null); }}
+              onClick={() => { setSortBy('discount_desc'); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'discount_desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Maior Desconto
