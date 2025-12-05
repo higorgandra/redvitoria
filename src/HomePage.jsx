@@ -31,7 +31,8 @@ const HomePage = ({ cart, addToCart }) => {
     const [products, setProducts] = useState([]); // Estado para ordenação: 'price_asc', 'price_desc', 'discount_desc' ou null
     const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState(null);
-    const [currentPage, setCurrentPage] = useState(() => {
+    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(() => { // Inicializa o estado buscando do sessionStorage ou usando 1 como padrão.
         return parseInt(sessionStorage.getItem('homeCurrentPage'), 10) || 1;
     });
 
@@ -85,6 +86,8 @@ const HomePage = ({ cart, addToCart }) => {
 
     // Reseta para a primeira página sempre que a marca ativa for alterada
     useEffect(() => {
+      // Limpa o estado salvo e reseta a página ao mudar o filtro.
+      sessionStorage.removeItem('homeCurrentPage');
       setCurrentPage(1);
     }, [activeBrand, sortBy]);
 
@@ -145,7 +148,10 @@ const HomePage = ({ cart, addToCart }) => {
     const currentProducts = finalProductList.slice(indexOfFirstProduct, indexOfLastProduct);
 
     const handlePageChange = (newPage) => {
-        if (newPage > 0 && newPage <= totalPages) setCurrentPage(newPage);
+        if (newPage > 0 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+            sessionStorage.setItem('homeCurrentPage', newPage); // Salva a página atual
+        }
     };
 
     const handleBottomPageChange = (event, newPage) => {
@@ -156,6 +162,7 @@ const HomePage = ({ cart, addToCart }) => {
 
         if (newPage > 0 && newPage <= totalPages) {
             setCurrentPage(newPage);
+            sessionStorage.setItem('homeCurrentPage', newPage); // Salva a página atual
 
             // Adiciona um pequeno delay para garantir que o DOM seja atualizado antes de rolar.
             setTimeout(() => {
@@ -448,7 +455,7 @@ const HomePage = ({ cart, addToCart }) => {
         >
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => { setActiveBrand('all'); setActiveModal(null); }}
+              onClick={() => { setActiveBrand('all'); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === 'all' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Todos
@@ -456,7 +463,7 @@ const HomePage = ({ cart, addToCart }) => {
             {brands.filter(b => b.value !== 'all').map(brand => (
               <button
                 key={brand.value}
-                onClick={() => { setActiveBrand(brand.value); setActiveModal(null); }}
+                onClick={() => { setActiveBrand(brand.value); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
                 className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === brand.value ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
               >
                 {brand.label}
@@ -473,25 +480,25 @@ const HomePage = ({ cart, addToCart }) => {
         >
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => { setSortBy(null); setActiveModal(null); }}
+              onClick={() => { setSortBy(null); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === null ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Padrão
             </button>
             <button
-              onClick={() => { setSortBy('price_asc'); setActiveModal(null); }}
+              onClick={() => { setSortBy('price_asc'); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'price_asc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Menor Preço
             </button>
             <button
-              onClick={() => { setSortBy('price_desc'); setActiveModal(null); }}
+              onClick={() => { setSortBy('price_desc'); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'price_desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Maior Preço
             </button>
             <button
-              onClick={() => { setSortBy('discount_desc'); setActiveModal(null); }}
+              onClick={() => { setSortBy('discount_desc'); sessionStorage.removeItem('homeCurrentPage'); setActiveModal(null); }}
               className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'discount_desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               Maior Desconto
