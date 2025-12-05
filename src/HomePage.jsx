@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, X, MapPin, Check, Package, ChevronLeft, ChevronRight, Instagram, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
+import { ShoppingBag, X, MapPin, Check, Package, ChevronLeft, ChevronRight, Instagram, SlidersHorizontal, ArrowUpDown, XCircle } from 'lucide-react';
 import LogoSlider from './LogoSlider';
 import FeaturesSection from './FeaturesSection';
 import FilterModal from './FilterModal'; // Importar o novo componente
@@ -98,6 +98,14 @@ const HomePage = ({ cart, addToCart }) => {
         setCurrentPage(1); // Reseta a página ao mudar o filtro
       }
     }, [activeBrand, sortBy]);
+
+    const handleClearFilters = () => {
+        setActiveBrand('all');
+        setSortBy(null);
+    };
+
+    // Condição para verificar se algum filtro está ativo
+    const isFilterActive = activeBrand !== 'all' || sortBy !== null;
 
     // Função auxiliar para calcular o desconto
     const calculateDiscount = (product) => {
@@ -387,6 +395,16 @@ const HomePage = ({ cart, addToCart }) => {
               
               {/* Nova Barra de Filtros */}
               <div className="flex justify-center md:justify-end gap-2 mt-4 md:mt-0 w-full md:w-auto">
+                {/* Botão para Limpar Filtros (apenas desktop) */}
+                {isFilterActive && (
+                    <button 
+                        onClick={handleClearFilters}
+                        className="hidden md:flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg shadow-sm hover:bg-red-100"
+                    >
+                        <XCircle size={16} />
+                        <span>Limpar Filtro</span>
+                    </button>
+                )}
                 {/* Botão para abrir o modal de preço */}
                 <button 
                   onClick={() => setActiveModal('price')}
