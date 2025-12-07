@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useInView } from 'react-intersection-observer';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Send, Share2, Check } from 'lucide-react';
 import { incrementMetric } from './firebase'; // 1. Importar a função
 
-const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted }) => {
+const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted, currentPage, showShareIcon }) => {
   const [hasCopied, setHasCopied] = useState(false);
 
   const { ref, inView } = useInView({
@@ -79,6 +79,27 @@ const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted })
     return 'bg-gray-500'; // Cor padrão caso algo dê errado
   };
 
+  // Decide qual estado de navegação passar para a página de detalhe.
+  // Usamos captura em pointerdown para garantir o valor de scroll exato no momento do clique.
+  const navigate = useNavigate();
+  const pointerScrollRef = useRef(null);
+
+  const handlePointerDown = () => {
+    try {
+      pointerScrollRef.current = window.scrollY;
+    } catch (err) {
+      pointerScrollRef.current = 0;
+    }
+  };
+
+  const handleClickNavigate = (e) => {
+    // Previna o comportamento padrão do Link e faça navegação programática
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    const scrollPos = pointerScrollRef.current !== null ? pointerScrollRef.current : (typeof window !== 'undefined' ? window.scrollY : 0);
+    const state = { page: currentPage || 1, scrollPosition: scrollPos };
+    navigate(`/produto/${product.id}`, { state });
+  };
+
   return (
     <div
       ref={ref}
@@ -87,7 +108,14 @@ const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted })
         ${isHighlighted ? 'ring-4 ring-offset-2 ring-[#8B0000] shadow-2xl' : ''}`} // Lógica da animação e destaque
     >
       {/* Image Section */}
-      <Link to={`/produto/${product.id}`} className="block">
+      <a
+        to={`/produto/${product.id}`}
+        href={`/produto/${product.id}`}
+        className="block"
+        onPointerDown={handlePointerDown}
+        onTouchStart={handlePointerDown}
+        onClick={handleClickNavigate}
+      >
         <div className="relative aspect-square overflow-hidden rounded-t-lg">
           <div className="w-full h-full bg-gray-100">
             <img 
@@ -97,33 +125,43 @@ const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted })
             />
           </div>
         </div>
-      </Link>
-        {/* Ícone de Compartilhar */}
-        <div className="absolute top-3 right-3">
-          <button 
-            onClick={handleShareAndCopy}
-            className={`backdrop-blur-sm p-2 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100
-              ${hasCopied 
-                ? 'bg-green-500 text-white' 
-                : 'bg-white/70 text-gray-800 hover:bg-white hover:text-[#8B0000]'}`} 
-            title={hasCopied ? "Link copiado!" : "Copiar link do produto"}
-          >
-            {hasCopied ? <Check size={18} /> : <Share2 size={18} />}
-          </button>
-        </div>      
+      </a>
+        {/* Ícone de Compartilhar (renderizado condicionalmente) */}
+        {showShareIcon && (
+          <div className="absolute top-3 right-3">
+            <button 
+              onClick={handleShareAndCopy}
+              className={`backdrop-blur-sm p-2 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100
+                ${hasCopied 
+                  ? 'bg-green-500 text-white' 
+                  : 'bg-white/70 text-gray-800 hover:bg-white hover:text-[#8B0000]'}`} 
+              title={hasCopied ? "Link copiado!" : "Copiar link do produto"}
+            >
+              {hasCopied ? <Check size={18} /> : <Share2 size={18} />}
+            </button>
+          </div>
+        )}
 
       {/* Content Section */}
       <div className="p-3 flex-1 flex flex-col">
         <div className="flex-grow">
-          <Link to={`/produto/${product.id}`} className="block">
+          <a
+            href={`/produto/${product.id}`}
+            onClick={handleClickNavigate}
+            onPointerDown={handlePointerDown}
+            onTouchStart={handlePointerDown}
+            className="block"
+          >
             <h3 className="text-sm text-gray-500 capitalize mb-1">{product.brand}</h3>
             <h4 
               className={`font-semibold text-gray-800 text-base leading-tight mb-2 h-12 hover:text-[#8B0000] transition-colors ${isAd && 'text-blue-700'}`}
               title={product.name}
             >
-              {isAd ? product.name : (product.name.length > 17 ? `${product.name.substring(0, 17)}...` : product.name)}
+              {product.name.length > 17 && !isAd
+                ? `${product.name.substring(0, 17)}...`
+                : product.name}
             </h4>
-          </Link>
+          </a>
           
           {!isAd ? (
             /* Price for regular products */

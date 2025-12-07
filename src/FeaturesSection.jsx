@@ -11,7 +11,7 @@ const features = [
   {
     icon: <MapPin size={32} />,
     title: 'Entrega Grátis SSA',
-    description: 'Mora em Salvador? A entrega é por minha conta. Combinamos o melhor local ou delivery.',
+    description: 'Mora em Salvador? A entrega é por minha conta. Combinamos o melhor delivery.',
     color: 'text-green-400',
     highlight: true,
   },

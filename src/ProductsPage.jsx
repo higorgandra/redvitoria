@@ -444,7 +444,11 @@ const ProductsPage = () => {
             stock: stock,
             slug: editFormData.slug ? generateSlug(editFormData.slug) : generateSlug(editFormData.name), // Gera ou usa o slug
             discountPercentage: parseFloat(editFormData.discountPercentage) || 0,
-            link: editFormData.link || '',
+            // Para produtos normais, construímos o link a partir do slug.
+            // Para anúncios, mantemos o link informado manualmente.
+            link: status === 'Anúncio'
+                ? (editFormData.link || '')
+                : `https://redvitoria.pages.dev/produto/${editFormData.slug ? generateSlug(editFormData.slug) : generateSlug(editFormData.name)}`,
             description: editFormData.description || '',
             status: status,
         };
@@ -504,6 +508,7 @@ const ProductsPage = () => {
                 discountPercentage: parseFloat(newProductData.discountPercentage) || 0,
                 description: newProductData.description || '',
                 status: (isNaN(stock) || stock === 0) ? 'Sem Estoque' : 'Ativo',
+                link: `https://redvitoria.pages.dev/produto/${newProductData.slug ? generateSlug(newProductData.slug) : generateSlug(newProductData.name)}`,
                 createdAt: serverTimestamp()
             };
 

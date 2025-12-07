@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { db } from './firebase';
 import { doc, getDoc, collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
 import { ShoppingBag, ArrowLeft, Check, Loader2, Plus, Minus, ShieldCheck, AlertTriangle, Package, Share2 } from 'lucide-react';
 import ProductCard from './ProductCard'; // Para produtos relacionados
+import Header from '/Header.jsx'; // Importar o novo Header
 
 const ProductDetailPage = ({ cart, addToCart }) => {
     const { productId } = useParams();
@@ -14,7 +15,7 @@ const ProductDetailPage = ({ cart, addToCart }) => {
     const [showNotification, setShowNotification] = useState(false);
     const [shareFeedback, setShareFeedback] = useState('Compartilhar este produto');
     const navigate = useNavigate();
-    const cartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+    const location = useLocation();
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -27,21 +28,20 @@ const ProductDetailPage = ({ cart, addToCart }) => {
                     const productData = { id: docSnap.id, ...docSnap.data() };
                     setProduct(productData);
 
-                    // Buscar produtos relacionados (mesma marca, exceto o atual)
+                    // CORREÇÃO: Simplificando a query para evitar o erro de índice do Firebase.
+                    // Buscamos mais itens e filtramos no lado do cliente.
                     const relatedQuery = query(
                         collection(db, "products"),
                         where("brand", "==", productData.brand),
-                        where("status", "==", "Ativo"),
-                        orderBy("createdAt", "desc"),
-                        limit(4) // Pega 4 para garantir que teremos 3 mesmo se o produto atual estiver na lista
+                        limit(10) // Pega mais itens para ter margem para filtrar
                     );
                     const relatedSnapshot = await getDocs(relatedQuery);
                     const relatedList = relatedSnapshot.docs
                         .map(doc => ({ id: doc.id, ...doc.data() }))
-                        .filter(p => p.id !== productData.id); // Exclui o produto atual
-                    setRelatedProducts(relatedList.slice(0, 3)); // Garante no máximo 3
+                        .filter(p => p.id !== productData.id && p.status === 'Ativo'); // Exclui o produto atual e filtra por status 'Ativo'
+                    setRelatedProducts(relatedList.slice(0, 4)); // Garante no máximo 4
                 } else {
-                    console.log("Nenhum produto encontrado!");
+                    // Produto não encontrado, poderia redirecionar para uma página 404.
                     // Opcional: redirecionar para uma página 404
                 }
             } catch (error) {
@@ -59,11 +59,6 @@ const ProductDetailPage = ({ cart, addToCart }) => {
         addToCart(product, quantity); // Passa a quantidade para a função
         setShowNotification(true);
         setTimeout(() => setShowNotification(false), 3000);
-    };
-
-    const handleGoBack = () => {
-        // Navega para a página anterior e passa um estado para indicar a origem
-        navigate(-1, { state: { fromProductDetail: true } });
     };
 
     const handleShare = async () => {
@@ -139,40 +134,11 @@ const ProductDetailPage = ({ cart, addToCart }) => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Barra de Navegação Adicionada */}
-            <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="relative flex justify-center items-center h-20">
-                        {/* Logo Centralizado (idêntico ao da HomePage) */}
-                        <div className="absolute left-1/2 -translate-x-1/2">
-                            <Link to="/" className="flex items-center cursor-pointer">
-                                <div className="text-center">
-                                    <h1 className="text-2xl font-black text-gray-900 tracking-tight">
-                                        <span className="text-[#8B0000]">RED</span>VITORIA
-                                    </h1>
-                                    <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase block -mt-1">
-                                        Pronta Entrega Salvador
-                                    </span>
-                                </div>
-                            </Link>
-                        </div>
-                        {/* Ícone do Carrinho à Direita */}
-                        <div className="absolute right-0 flex items-center">
-                            <Link to="/carrinho" className="relative p-2 hover:bg-[#B22222]/10 rounded-full transition group">
-                                <ShoppingBag className="text-gray-700 group-hover:text-[#8B0000] transition" />
-                                {cartItemCount > 0 && (
-                                    <span className="absolute top-0 right-0 bg-[#B22222] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold">
-                                        {cartItemCount}
-                                    </span>
-                                )}
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+            <Header cart={cart} />
 
             {/* Notificação */}
             {showNotification && (
-                <Link to="/carrinho" className="fixed top-24 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 animate-bounce flex items-center gap-2 cursor-pointer">
+                <Link to="/carrinho" className="fixed bottom-20 inset-x-4 md:top-28 md:bottom-auto md:inset-x-auto md:right-6 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 flex items-center justify-center md:justify-start gap-2 cursor-pointer animate-fade-in-up">
                     <Check size={20} />
                     Adicionado à sacola!
                 </Link>
@@ -180,7 +146,21 @@ const ProductDetailPage = ({ cart, addToCart }) => {
 
             <main className="max-w-5xl mx-auto p-4 md:p-8 pb-28 md:pb-8">
                 <div className="bg-white p-6 md:p-10 rounded-2xl shadow-sm">
-                    <button onClick={handleGoBack} className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#8B0000] mb-8">
+                    <button
+                        onClick={() => {
+                            const originScroll = location.state?.scrollPosition ?? null;
+                            const originPage = location.state?.page ?? null;
+                            if (originPage !== null || originScroll !== null) {
+                                // Navega explicitamente para /?page=X e também passa o state
+                                const pageQuery = originPage ?? 1;
+                                navigate(`/?page=${pageQuery}`, { state: { scrollPosition: originScroll ?? 0, page: pageQuery } });
+                            } else {
+                                // Fallback: volta no histórico
+                                navigate(-1);
+                            }
+                        }}
+                        className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#8B0000] mb-8"
+                    >
                         <ArrowLeft size={16} />
                         Voltar para a vitrine
                     </button>
@@ -314,11 +294,12 @@ const ProductDetailPage = ({ cart, addToCart }) => {
                 {relatedProducts.length > 0 && (
                     <div className="mt-12">
                         <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Quem viu, viu também</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                             {relatedProducts.map(related => (
                                 <ProductCard 
                                     key={related.id}
                                     product={related}
+                                    cart={cart}
                                     onAddToCart={addToCart}
                                     isHighlighted={false}
                                 />

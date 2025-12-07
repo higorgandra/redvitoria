@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, X, MapPin, Check, Package, ChevronLeft, ChevronRight, Instagram, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { Link, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
+import { Check, ChevronLeft, ChevronRight, Instagram, SlidersHorizontal, ArrowUpDown, Gift, Sparkles, Tag, XCircle, Link as LinkIcon, Search, X } from 'lucide-react';
 import LogoSlider from './LogoSlider';
 import FeaturesSection from './FeaturesSection';
+import HeroSection from './HeroSection'; // Importa a nova seção Hero
 import FilterModal from './FilterModal'; // Importar o novo componente
 import ProductCard from './ProductCard';
 import { db } from './firebase';
+import Header from '/Header.jsx'; // 1. Importar o novo Header
 import { collection, getDocs, query, where } from 'firebase/firestore';
 
 const brandColors = {
@@ -21,15 +23,23 @@ const brandColors = {
 
 const HomePage = ({ cart, addToCart }) => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const navigationType = useNavigationType(); // Hook para saber se a navegação é PUSH ou POP
     const [activeBrand, setActiveBrand] = useState('all');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [activeModal, setActiveModal] = useState(null); // 'brand', 'price', ou null
-    const [showNotification, setShowNotification] = useState(false);
-    const [heroImageIndex, setHeroImageIndex] = useState(0);
+    const [showNotification, setShowNotification] = useState(false);    
     const [products, setProducts] = useState([]); // Estado para ordenação: 'price_asc', 'price_desc', 'discount_desc' ou null
     const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState(null);
-    const [currentPage, setCurrentPage] = useState(1);
+    const [searchQuery, setSearchQuery] = useState(''); // 2. Estado para a busca
+
+    // Lógica de inicialização da página:
+    // 1. Tenta pegar do estado da navegação (ao voltar de um produto)
+    // 2. Tenta pegar da query string da URL (ao recarregar a página)
+    // 3. Usa 1 como padrão
+    const queryParams = new URLSearchParams(location.search);
+    const [currentPage, setCurrentPage] = useState(location.state?.page || parseInt(queryParams.get('page')) || 1);
 
     // Efeito para buscar os produtos do Firestore
     const brands = [
@@ -57,15 +67,6 @@ const HomePage = ({ cart, addToCart }) => {
       fetchProducts();
     }, []);
   
-    // Efeito para alternar a imagem do hero
-    useEffect(() => {
-      if (products.length === 0) return;
-      const imageInterval = setInterval(() => {
-        setHeroImageIndex(prevIndex => (prevIndex + 1) % products.length);
-      }, 4000);
-      return () => clearInterval(imageInterval);
-    }, [products]);
-  
     // Efeito para bloquear o scroll do body quando um modal/menu está aberto
     useEffect(() => {
       if (isMenuOpen || activeModal) {
@@ -79,10 +80,95 @@ const HomePage = ({ cart, addToCart }) => {
       };
     }, [isMenuOpen, activeModal]);
 
-    // Reseta para a primeira página sempre que a marca ativa for alterada
+    // Gerencia a restauração de página/scroll com segurança:
+    // - Sincroniza `currentPage` com a `location.state.page` (quando presente) ou com a query `?page=`.
+    // - Só executa o `window.scrollTo` após o `currentPage` estar aplicado (garante DOM correto).
+    // - Limpa o `location.state` APENAS após o scroll ser realizado, evitando race conditions.
+    const pendingRestoreRef = useRef(null);
+    const restoreLockRef = useRef(false);
+
+    // Sempre que a location mudar, decide se há um restore pendente e sincroniza a página.
     useEffect(() => {
-      setCurrentPage(1);
-    }, [activeBrand, sortBy]);
+      const state = location.state || {};
+      const params = new URLSearchParams(location.search);
+      const queryPage = params.get('page') ? Number(params.get('page')) : null;
+      const statePage = state.page !== undefined ? Number(state.page) : null;
+      const stateScroll = state.scrollPosition;
+
+      // If the navigation provided a page in state and it's different from currentPage, set it
+      if (statePage && statePage !== currentPage) {
+        // Defer actual scroll until after currentPage update
+        pendingRestoreRef.current = { scrollPosition: stateScroll, page: statePage };
+        restoreLockRef.current = true; // prevent other effects from resetting page
+        setCurrentPage(statePage);
+        return;
+      }
+
+      // If there's a scroll position in state and query page equals currentPage, perform scroll now
+      if (stateScroll !== undefined && (queryPage === null || queryPage === currentPage)) {
+        // Schedule after paint to ensure DOM updated for the page
+        const doScroll = (to) => {
+          window.scrollTo(0, to);
+        };
+        requestAnimationFrame(() => {
+          const to = stateScroll;
+          doScroll(to);
+          // retries to counter layout shifts (images, fonts)
+          setTimeout(() => doScroll(to), 50);
+          setTimeout(() => doScroll(to), 150);
+          setTimeout(() => doScroll(to), 300);
+          // Clear navigation state but keep query string
+          navigate(location.pathname + (location.search || ''), { replace: true, state: {} });
+          pendingRestoreRef.current = null;
+          // release lock shortly after
+          setTimeout(() => { restoreLockRef.current = false; }, 400);
+        });
+        return;
+      }
+
+      // If we had a pending restore and currentPage now equals pending.page, perform the scroll
+      if (pendingRestoreRef.current && pendingRestoreRef.current.page === currentPage) {
+        const toScroll = pendingRestoreRef.current.scrollPosition ?? 0;
+        const doScrollPending = (to) => {
+          window.scrollTo(0, to);
+        };
+        requestAnimationFrame(() => {
+          const to = toScroll;
+          doScrollPending(to);
+          setTimeout(() => doScrollPending(to), 50);
+          setTimeout(() => doScrollPending(to), 150);
+          setTimeout(() => doScrollPending(to), 300);
+          navigate(location.pathname + (location.search || ''), { replace: true, state: {} });
+          pendingRestoreRef.current = null;
+          setTimeout(() => { restoreLockRef.current = false; }, 400);
+        });
+      }
+    }, [location, currentPage, navigate]);
+
+    // Reseta para a primeira página sempre que um filtro for alterado,
+    // mas não quando estamos voltando de uma página de produto (navegação POP)
+    // ou quando a URL / location.state já fornecem uma página explícita.
+    useEffect(() => {
+      const params = new URLSearchParams(location.search);
+      const queryPage = params.get('page');
+      const hasPageInState = location.state && location.state.page !== undefined;
+
+      // Só resetamos para 1 quando a navegação NÃO for um POP e
+      // não existir página explícita nem na query nem no state.
+      // Também respeitamos o lock de restauração para não sobrescrever
+      // a página enquanto estamos restaurando posição.
+      if (navigationType !== 'POP' && !hasPageInState && !queryPage && !restoreLockRef.current) {
+        setCurrentPage(1);
+      }
+    }, [activeBrand, sortBy, navigationType, location.search, location.state]);
+
+    // 3. Função para lidar com a busca vinda do Header
+    const handleSearch = (query) => {
+        setSearchQuery(query);
+        // Rola suavemente para a seção de estoque para mostrar os resultados
+        const estoqueSection = document.getElementById('estoque');
+        if (estoqueSection) estoqueSection.scrollIntoView({ behavior: 'smooth' });
+    };
 
     const handleClearFilters = () => {
         setActiveBrand('all');
@@ -134,22 +220,36 @@ const HomePage = ({ cart, addToCart }) => {
       ? sortedProducts
       : sortedProducts.filter(p => p.brand === activeBrand);
 
-    // Reordena a lista para que o card de anúncio seja sempre o último
-    const finalProductList = [...brandFilteredProducts].sort((a, b) => {
-      if (a.status === 'Anúncio') return 1; // Move 'a' para o final
-      if (b.status === 'Anúncio') return -1; // Move 'b' para o final (deixando 'a' antes)
-      return 0; // Mantém a ordem para os outros produtos
-    });
+    // 4. Filtra os produtos pela busca, se houver
+    const searchFilteredProducts = searchQuery.trim() === ''
+        ? brandFilteredProducts
+        : brandFilteredProducts.filter(p => {
+            const lowerCaseQuery = searchQuery.toLowerCase();
+            const nameMatch = p.name.toLowerCase().includes(lowerCaseQuery);
+            const brandMatch = p.brand.toLowerCase().includes(lowerCaseQuery);
+            return nameMatch || brandMatch;
+        });
+
+    // Separa o card de anúncio dos produtos normais
+    const adCard = searchFilteredProducts.find(p => p.status === 'Anúncio');
+    const regularProducts = searchFilteredProducts.filter(p => p.status !== 'Anúncio');
   
     // Lógica da Paginação
     const productsPerPage = 10;
-    const totalPages = Math.ceil(finalProductList.length / productsPerPage);
+    const totalPages = Math.ceil(regularProducts.length / productsPerPage);
     const indexOfLastProduct = currentPage * productsPerPage;
     const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-    const currentProducts = finalProductList.slice(indexOfFirstProduct, indexOfLastProduct);
+    let currentProducts = regularProducts.slice(indexOfFirstProduct, indexOfLastProduct);
 
+    // Adiciona o anúncio ao final da lista APENAS na última página, se ele existir
+    if (adCard && currentPage === totalPages) {
+        currentProducts.push(adCard);
+    }
     const handlePageChange = (newPage) => {
-        if (newPage > 0 && newPage <= totalPages) setCurrentPage(newPage);
+        if (newPage > 0 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+            // A navegação que atualizava a URL foi removida para manter a URL limpa.
+        }
     };
 
     const handleBottomPageChange = (event, newPage) => {
@@ -160,15 +260,14 @@ const HomePage = ({ cart, addToCart }) => {
 
         if (newPage > 0 && newPage <= totalPages) {
             setCurrentPage(newPage);
+            // A navegação que atualizava a URL foi removida para manter a URL limpa.
 
             // Adiciona um pequeno delay para garantir que o DOM seja atualizado antes de rolar.
             setTimeout(() => {
                 const targetElement = document.querySelector('#estoque');
                 if (targetElement) {
-                    const headerOffset = document.querySelector('nav')?.offsetHeight || 80;
-                    const elementPosition = targetElement.getBoundingClientRect().top;
-                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                    window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                    // Rola a página para o topo da seção 'estoque' de forma suave.
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             }, 0);
         }
@@ -213,169 +312,52 @@ const HomePage = ({ cart, addToCart }) => {
         */}
         
         {showNotification && (
-          <Link to="/carrinho" className="fixed top-24 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 animate-bounce flex items-center gap-2 cursor-pointer">
+          <Link to="/carrinho" className="fixed bottom-4 inset-x-4 md:top-28 md:bottom-auto md:inset-x-auto md:right-6 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 flex items-center justify-center md:justify-start gap-2 cursor-pointer">
             <Check size={20} />
             Adicionado à sacola!
           </Link>
         )}
-  
-        <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="relative flex justify-center items-center h-20">
-              {/* Logo Centralizado */}
-              <div className="absolute left-1/2 -translate-x-1/2">
-                <a href="#home" onClick={(e) => handleNavClick(e, '#home')} className="flex items-center cursor-pointer">
-                  <div className="text-center">
-                    <h1 className="text-2xl font-black text-gray-900 tracking-tight">
-                      <span className="text-[#8B0000]">RED</span>VITORIA
-                    </h1>
-                    <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase block -mt-1">
-                      Pronta Entrega Salvador
-                    </span>
-                  </div>
-                </a>
-              </div>
-  
-              {/* Ícone do Carrinho à Direita */}
-              <div className="absolute right-0 flex items-center">
-                <Link to="/carrinho" className="relative p-2 hover:bg-[#B22222]/10 rounded-full transition group">
-                  <ShoppingBag className="text-gray-700 group-hover:text-[#8B0000] transition" />
-                  {cart.length > 0 && (
-                    <span className="absolute top-0 right-0 bg-[#B22222] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold">
-                      {cart.reduce((acc, item) => acc + item.quantity, 0)}
-                    </span>
-                  )}
-                </Link>
-              </div>
-            </div>
-          </div>
-        </nav>
-  
-        <section id="home" className="relative bg-white flex items-center justify-center pt-8 pb-16 md:py-24 overflow-hidden border-b border-gray-100 h-[calc(100vh-5rem)] md:h-auto">
-          <div className="absolute top-0 right-0 w-1/2 h-full bg-[#B22222]/10 skew-x-12 transform translate-x-20 hidden md:block"></div>
-          <div className="max-w-7xl mx-auto px-4 relative z-10 w-full">
-            {/* Mobile Layout: Centered */}
-            <div className="flex flex-col items-center justify-center text-center md:hidden h-full">
-              <div className="w-full">
-                {/* Hero Image Carousel */}
-                <div className="mb-8 flex w-full justify-center relative h-64">
-                  <div className="relative">
-                    <div className="absolute -inset-4 bg-[#B22222]/20 rounded-full blur-xl"></div>
-                    <div className="relative w-64 h-64">
-                      {products.map((product, index) => (
-                        <img 
-                          key={product.id}
-                          src={product.image} 
-                          alt={product.name}
-                          className={`absolute inset-0 rounded-2xl shadow-2xl object-cover w-full h-full border-4 border-white rotate-3 transition-opacity duration-1000 ease-in-out ${
-                            index === heroImageIndex ? 'opacity-100' : 'opacity-0'
-                          }`}
-                        />
-                      ))}
-                      {/* Tag de Status "Em Estoque" para Mobile */}
-                      <div className="absolute -bottom-4 -left-4 bg-white p-3 rounded-xl shadow-xl border border-gray-100 flex items-center gap-3 animate-bounce-slow z-10">
-                        <div className="bg-green-100 p-2 rounded-full text-green-700">
-                          <Package size={20} />
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500 font-bold uppercase">Status</p>
-                          <p className="text-sm font-bold text-gray-900">Em Estoque</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        
+        <Header cart={cart} onSearch={handleSearch} />
 
-                <h2 className="text-3xl font-extrabold text-gray-900 leading-tight mb-3">
-                  Viu, gostou, pegou. <br />
-                  <span className="text-[#8B0000]">Sem esperar.</span>
-                </h2>
+        <HeroSection handleNavClick={handleNavClick} products={products} />
 
-                <p className="text-base text-gray-600 mb-6 max-w-2xl leading-relaxed mx-auto">
-                  Aqui na <span className="text-[#8B0000]"><strong>Vitoria</strong></span>, todos os produtos já estão comigo. Pediu hoje, chegou hoje.
-                </p>
-                
-                <div className="flex flex-wrap justify-center items-center gap-4">
-                  <a href="#estoque" onClick={(e) => handleNavClick(e, '#estoque')} className="bg-[#8B0000] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#650000] transition shadow-lg shadow-[#B22222]/30 text-center">
-                    Estoque
-                  </a>
-                  <Link to="/social" className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-100 rounded-lg shadow-sm hover:bg-gray-50 transition">
-                    <Instagram className="text-[#8B0000]" />
-                    <span className="text-sm font-semibold text-gray-700">
-                      Nossos Links <br/>
-                    </span>
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Desktop Layout: 2 Columns */}
-            <div className="hidden md:flex flex-row items-center w-full">
-              <div className="md:w-1/2 mb-12 md:mb-0">
-                <div className="inline-flex items-center gap-2 py-1 px-4 rounded-full bg-[#B22222]/20 text-[#8B0000] text-xs font-bold uppercase tracking-wider mb-6">
-                  <MapPin size={14} />
-                  Exclusivo para Salvador
-                </div>
-                <h2 className="text-4xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
-                Viu, gostou, pegou. <br />
-                <span className="text-[#8B0000]">Sem esperar.</span>
-                </h2>
-                <p className="text-lg text-gray-600 mb-8 max-w-lg leading-relaxed">
-                Aqui na <span className="text-[#8B0000]"><strong>Vitoria</strong></span>, todos os produtos já estão comigo. Pediu hoje, chegou hoje.
-                </p>
-                <div className="flex flex-wrap justify-start items-center gap-4">
-                  <a href="#estoque" onClick={(e) => handleNavClick(e, '#estoque')} className="bg-[#8B0000] text-white px-8 py-4 rounded-lg font-bold hover:bg-[#650000] transition shadow-lg shadow-[#B22222]/30 text-center">
-                    Estoque
-                  </a>
-                  <Link to="/social" className="flex items-center gap-3 px-6 py-4 bg-white border border-gray-100 rounded-lg shadow-sm hover:bg-gray-50 transition">
-                    <Instagram className="text-[#8B0000]" />
-                    <span className="text-sm font-semibold text-gray-700">
-                      Nossos Links <br/>
-                      <span className="text-xs font-normal text-gray-500">Instagram, WhatsApp e mais</span>
-                    </span>
-                  </Link>
-                </div>
-              </div>
-              <div className="hidden md:flex md:w-1/2 justify-center relative">
-                <div className="relative">
-                  <div className="absolute -inset-4 bg-[#B22222]/20 rounded-full blur-xl"></div>
-                  <div className="relative w-72 h-72 md:w-96 md:h-96">
-                    {products.map((product, index) => (
-                      <img 
-                        key={product.id}
-                        src={product.image} 
-                        alt={product.name} 
-                        className={`absolute inset-0 rounded-2xl shadow-2xl object-cover w-full h-full border-4 border-white rotate-3 transition-opacity duration-1000 ease-in-out ${
-                          index === heroImageIndex ? 'opacity-100' : 'opacity-0'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-xl shadow-xl border border-gray-100 flex items-center gap-3 animate-bounce-slow">
-                    <div className="bg-green-100 p-2 rounded-full text-green-700">
-                      <Package size={24} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 font-bold uppercase">Status</p>
-                      <p className="text-sm font-bold text-gray-900">Em Estoque</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-  
         <section id="estoque" className="py-12 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4">
-            <div className="flex flex-col md:flex-row justify-between items-center md:items-end mb-8 border-b border-gray-200 pb-4">
+            <div className="mb-8 hidden md:block">
               <div className="text-center md:text-left">
-                <h3 className="text-2xl font-bold text-gray-900">Vitrine de Pronta Entrega</h3>
-                <p className="text-gray-500 mt-1">Itens disponíveis agora em Salvador.</p>
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900">Vitrine Pronta Entrega</h3>
+                <p className="text-sm md:text-base text-gray-500 mt-1">Produtos selecionados para você.</p>
               </div>
-              
+            </div>
+
+            {/* Barra de Busca e Filtros */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 md:border-b md:border-gray-200 md:pb-6">
+              {/* Barra de Busca */}
+              <form onSubmit={(e) => e.preventDefault()} className="relative w-full md:max-w-md hidden md:block">
+                  <input 
+                    type="text" 
+                    name="search" 
+                    value={searchQuery}
+                    placeholder="Buscar na Vitória..." 
+                    className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50"
+                    onChange={(e) => setSearchQuery(e.target.value)} />
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 p-1 text-gray-400">
+                      <Search size={20} />
+                  </div>
+                  {searchQuery && (
+                    <button 
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-red-600"
+                    >
+                      <X size={20} />
+                    </button>
+                  )}
+              </form>
+
               {/* Nova Barra de Filtros */}
-              <div className="flex justify-center md:justify-end gap-2 mt-4 md:mt-0 w-full md:w-auto">
+              <div className="flex justify-center md:justify-end gap-2 w-full md:w-auto">
                 {/* Botão para abrir o modal de preço */}
                 <button 
                   onClick={() => setActiveModal('price')}
@@ -397,6 +379,16 @@ const HomePage = ({ cart, addToCart }) => {
                   <SlidersHorizontal size={16} />
                   <span>{activeBrand === 'all' ? 'Filtrar' : selectedBrandLabel}</span>
                 </button>
+                {/* Botão para limpar filtros */}
+                {isFilterActive && (
+                  <button 
+                    onClick={handleClearFilters}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg shadow-sm hover:bg-red-100"
+                    title="Limpar filtros"
+                  >
+                    <XCircle size={16} />
+                  </button>
+                )}
               </div>
             </div>
   
@@ -419,7 +411,9 @@ const HomePage = ({ cart, addToCart }) => {
                     product={product}
                     cart={cart}
                     brandColors={brandColors}
+                    currentPage={currentPage}
                     onAddToCart={handleAddToCart} // onAddToCart é passado para o ProductCard
+                    showShareIcon={currentProducts.length > 4} // Nova propriedade para controlar o ícone
                     isHighlighted={false} // Não precisamos mais disso
                   />
                 ))
@@ -518,7 +512,7 @@ const HomePage = ({ cart, addToCart }) => {
             </a>
           </div>
           <div className="bg-red-100 text-center text-red-900 text-xs py-6 px-4">
-            <p>&copy; {copyrightYear} RedVitoria. Revendedora oficial independente.</p>
+            <p>&copy; {copyrightYear} Vitoria. Revendedora oficial independente.</p>
           </div>
         </footer>
       </div>
