@@ -154,46 +154,20 @@ const ProductsPage = () => {
                     return { id: doc.id, ...data, price: isNaN(priceAsNumber) ? 0 : priceAsNumber };
                 });
                 setProducts(productsList);
+            try {
+                // Em vez de criar um novo documento ao alterar o slug/id (que causa clonagem),
+                // apenas atualizamos os campos do documento existente. Isso preserva o mesmo
+                // document id e evita duplicatas.
+                await updateDoc(productRef, updatedData);
+                setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...updatedData } : p));
+
+                setEditingProduct(null); // Fecha o modal
+                setToastMessage({ type: 'success', message: 'Produto atualizado com sucesso!' });
+                console.log('Produto atualizado (in-place):', editingProduct.id, updatedData.link);
             } catch (error) {
-                console.error("Erro ao buscar produtos do Firestore: ", error);
+                console.error("Erro ao atualizar produto: ", error);
+                setToastMessage({ type: 'error', message: 'Não foi possível atualizar o produto.' });
             }
-            setLoading(false);
-        };
-
-        fetchProducts();
-    }, []);
-
-    // Efeito para fechar o dropdown ao clicar fora
-    useEffect(() => {
-        const handleClickOutside = () => setActiveDropdownId(null);
-        if (activeDropdownId) {
-            window.addEventListener('click', handleClickOutside);
-        }
-        return () => window.removeEventListener('click', handleClickOutside);
-    }, [activeDropdownId]);
-
-    // Reseta para a primeira página sempre que um filtro for alterado
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [view, searchQuery, brandFilter]);
-
-    // Efeito para limpar a mensagem do toast após alguns segundos
-    useEffect(() => {
-        if (toastMessage) {
-            const timer = setTimeout(() => {
-                setToastMessage(null);
-            }, 4000); // A mensagem desaparece após 4 segundos
-
-            return () => clearTimeout(timer);
-        }
-    }, [toastMessage]);
-
-    const handleArchiveProduct = async (productId) => {
-        const productRef = doc(db, "products", String(productId));
-        try {
-            await updateDoc(productRef, {
-                status: "Arquivado"
-            });
             // Atualiza o estado local para refletir a mudança na UI instantaneamente
             setProducts(products.map(p => 
                 p.id === productId ? { ...p, status: 'Arquivado' } : p
