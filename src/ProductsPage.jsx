@@ -154,46 +154,15 @@ const ProductsPage = () => {
                     return { id: doc.id, ...data, price: isNaN(priceAsNumber) ? 0 : priceAsNumber };
                 });
                 setProducts(productsList);
-            try {
-                // Em vez de criar um novo documento ao alterar o slug/id (que causa clonagem),
-                // apenas atualizamos os campos do documento existente. Isso preserva o mesmo
-                // document id e evita duplicatas.
-                await updateDoc(productRef, updatedData);
-                setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...updatedData } : p));
-
-                setEditingProduct(null); // Fecha o modal
-                setToastMessage({ type: 'success', message: 'Produto atualizado com sucesso!' });
-                console.log('Produto atualizado (in-place):', editingProduct.id, updatedData.link);
             } catch (error) {
-                console.error("Erro ao atualizar produto: ", error);
-                setToastMessage({ type: 'error', message: 'Não foi possível atualizar o produto.' });
+                console.error("Erro ao buscar produtos:", error);
+                setToastMessage({ type: 'error', message: 'Não foi possível carregar os produtos.' });
+            } finally {
+                setLoading(false);
             }
-            // Atualiza o estado local para refletir a mudança na UI instantaneamente
-            setProducts(products.map(p => 
-                p.id === productId ? { ...p, status: 'Arquivado' } : p
-            ));
-            setArchiveConfirmId(null); // Fecha o popup após arquivar
-        } catch (error) {
-            console.error("Erro ao arquivar produto: ", error);
-            setToastMessage({ type: 'error', message: 'Não foi possível arquivar o produto.' });
-        }
-    };
-
-    const handleRestoreProduct = async (productId) => {
-        const productRef = doc(db, "products", String(productId));
-        try {
-            await updateDoc(productRef, {
-                status: "Ativo"
-            });
-            // Atualiza o estado local para refletir a mudança na UI instantaneamente
-            setProducts(products.map(p => 
-                p.id === productId ? { ...p, status: 'Ativo' } : p
-            ));
-        } catch (error) {
-            console.error("Erro ao restaurar produto: ", error);
-            setToastMessage({ type: 'error', message: 'Não foi possível restaurar o produto.' });
-        }
-    };
+        };
+        fetchProducts();
+    }, []);
 
     const handleEditClick = (product) => {
         setEditingProduct(product);
