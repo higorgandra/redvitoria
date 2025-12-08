@@ -659,11 +659,36 @@ const ProductsPage = () => {
     });
 
     // Lógica da Paginação
-    const productsPerPage = 6; // Aumentado para 6 para incluir o anúncio
+    // Em telas desktop/grandes queremos 10 produtos por página, em telas pequenas mantemos 6.
+    const [productsPerPage, setProductsPerPage] = useState(() => {
+        try {
+            return (typeof window !== 'undefined' && window.innerWidth >= 768) ? 10 : 6;
+        } catch (e) {
+            return 6;
+        }
+    });
+
+    useEffect(() => {
+        const handleResize = () => {
+            const per = window.innerWidth >= 768 ? 10 : 6;
+            setProductsPerPage(prev => prev === per ? prev : per);
+        };
+        // Ajusta inicialmente e adiciona listener
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
     const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
     const indexOfLastProduct = currentPage * productsPerPage;
     const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
     const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+
+    // Garante que a página atual esteja dentro do limite válido quando productsPerPage mudar
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages > 0 ? totalPages : 1);
+        }
+    }, [totalPages]);
 
     const handlePageChange = (newPage) => {
         if (newPage > 0 && newPage <= totalPages) setCurrentPage(newPage);
