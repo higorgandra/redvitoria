@@ -152,12 +152,51 @@ const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted, c
     navigate(`/produto/${product.id}`, { state });
   };
 
+  // Clique no card quando for anúncio: abre o `product.link` em nova aba.
+  const handleAdCardClick = (e) => {
+    if (!isAd) return;
+    // Se o clique ocorreu sobre uma âncora ou um botão, deixe o elemento cuidar do clique (evita duplicar aberturas)
+    try {
+      if (e && e.target && e.target.closest && e.target.closest('a, button')) {
+        return;
+      }
+    } catch (err) {
+      // ignore
+    }
+
+    handleAdClick();
+
+    const rawLink = product.link && product.link.trim() ? product.link.trim() : null;
+    if (rawLink) {
+      try {
+        const url = new URL(rawLink, window.location.href);
+        window.open(url.href, '_blank', 'noopener');
+        return;
+      } catch (err) {
+        console.error('Erro ao interpretar product.link para anúncio (card):', err);
+      }
+    }
+
+    // Fallback: navegar para detalhe interno se não houver link
+    const scrollPos = pointerScrollRef.current !== null ? pointerScrollRef.current : (typeof window !== 'undefined' ? window.scrollY : 0);
+    const state = { page: currentPage || 1, scrollPosition: scrollPos };
+    navigate(`/produto/${product.id}`, { state });
+  };
+
   return (
     <div
       ref={ref}
+      onClick={isAd ? handleAdCardClick : null}
+      onPointerDown={isAd ? handlePointerDown : null}
+      onTouchStart={isAd ? handlePointerDown : null}
+      onKeyDown={isAd ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleAdCardClick(e); } } : null}
+      role={isAd ? 'button' : null}
+      tabIndex={isAd ? 0 : null}
+      aria-label={isAd ? `Abrir anúncio: ${product.name}` : null}
       className={`bg-white rounded-lg shadow-sm hover:shadow-lg transition-all duration-500 ease-out group flex flex-col h-full
         ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}
-        ${isHighlighted ? 'ring-4 ring-offset-2 ring-[#8B0000] shadow-2xl' : ''}`} // Lógica da animação e destaque
+        ${isHighlighted ? 'ring-4 ring-offset-2 ring-[#8B0000] shadow-2xl' : ''}
+        ${isAd ? ' cursor-pointer' : ''}`} // Lógica da animação e destaque
     >
       {/* Image Section */}
       <a

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
-import { Check, ChevronLeft, ChevronRight, Instagram, SlidersHorizontal, ArrowUpDown, Gift, Sparkles, Tag, XCircle, Link as LinkIcon, Search, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Instagram, SlidersHorizontal, ArrowUpDown, Gift, Sparkles, Tag, XCircle, Link as LinkIcon, X } from 'lucide-react';
 import LogoSlider from './LogoSlider';
 import FeaturesSection from './FeaturesSection';
 import HeroSection from './HeroSection'; // Importa a nova seção Hero
@@ -32,7 +32,6 @@ const HomePage = ({ cart, addToCart }) => {
     const [products, setProducts] = useState([]); // Estado para ordenação: 'price_asc', 'price_desc', 'discount_desc' ou null
     const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState(null);
-    const [searchQuery, setSearchQuery] = useState(''); // 2. Estado para a busca
 
     // Lógica de inicialização da página:
     // 1. Tenta pegar do estado da navegação (ao voltar de um produto)
@@ -43,13 +42,13 @@ const HomePage = ({ cart, addToCart }) => {
 
     // Efeito para buscar os produtos do Firestore
     const brands = [
-      { value: 'all', label: 'Todos' },
+      { value: 'all', label: 'Todas' },
       { value: 'natura', label: 'Natura' },
       { value: 'boticario', label: 'Boticário' },
       { value: 'avon', label: 'Avon' },
       { value: 'eudora', label: 'Eudora' },
       { value: 'quem-disse-berenice', label: 'Quem disse, Berenice?' },
-      { value: 'loccitane-au-bresil', label: 'L’Occitane au Brésil' },
+      { value: 'loccitane-au-bresil', label: "L'occitane Au Brésil" },
       { value: 'oui-paris', label: 'O.U.i Paris' },
     ];
     const selectedBrandLabel = brands.find(b => b.value === activeBrand)?.label || 'Selecionar Marca';
@@ -57,8 +56,8 @@ const HomePage = ({ cart, addToCart }) => {
     useEffect(() => {
       const fetchProducts = async () => {
         setLoading(true);
-        // Cria uma query para buscar apenas produtos que NÃO estão arquivados
-        const q = query(collection(db, "products"), where("status", "!=", "Arquivado"));
+        // Busca todos os produtos que não estão arquivados. O card de anúncio será tratado separadamente.
+        const q = query(collection(db, "products"), where("status", "!=", "Arquivado")); 
         const querySnapshot = await getDocs(q);
         const productsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setProducts(productsList);
@@ -66,7 +65,46 @@ const HomePage = ({ cart, addToCart }) => {
       };
       fetchProducts();
     }, []);
-  
+
+    // Helper: load products from Firestore respecting stock in DB (used by Ordenar / Filtrar)
+    const loadProductsFromDB = async ({ brand = 'all', sort = null } = {}) => {
+      setLoading(true);
+      try {
+        const snapshot = await getDocs(collection(db, 'products'));
+        let list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Exclude archived and require stock > 0 (reflect DB stock)
+        list = list.filter(p => p.status !== 'Arquivado' && (Number(p.stock) || 0) > 0);
+        if (brand && brand !== 'all') list = list.filter(p => p.brand === brand);
+
+        const getNumericPrice = (priceValue) => {
+          if (typeof priceValue === 'number') return priceValue;
+          if (typeof priceValue === 'string') {
+            const numericPrice = parseFloat(priceValue.replace('R$', '').replace('.', '').replace(',', '.').trim());
+            return isNaN(numericPrice) ? 0 : numericPrice;
+          }
+          return 0;
+        };
+
+        const calculateDiscount = (product) => {
+          const price = getNumericPrice(product.price);
+          const fullPrice = getNumericPrice(product.fullPrice || price * 2);
+          if (fullPrice > price) return Math.round(((fullPrice - price) / fullPrice) * 100);
+          return 0;
+        };
+
+        if (sort === 'price_asc') list.sort((a, b) => (getNumericPrice(a.price) || 0) - (getNumericPrice(b.price) || 0));
+        else if (sort === 'price_desc') list.sort((a, b) => (getNumericPrice(b.price) || 0) - (getNumericPrice(a.price) || 0));
+        else if (sort === 'discount_desc') list.sort((a, b) => calculateDiscount(b) - calculateDiscount(a));
+
+        setProducts(list);
+        setCurrentPage(1);
+      } catch (err) {
+        console.error('Erro ao carregar produtos do DB para filtros:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     // Efeito para bloquear o scroll do body quando um modal/menu está aberto
     useEffect(() => {
       if (isMenuOpen || activeModal) {
@@ -162,17 +200,11 @@ const HomePage = ({ cart, addToCart }) => {
       }
     }, [activeBrand, sortBy, navigationType, location.search, location.state]);
 
-    // 3. Função para lidar com a busca vinda do Header
-    const handleSearch = (query) => {
-        setSearchQuery(query);
-        // Rola suavemente para a seção de estoque para mostrar os resultados
-        const estoqueSection = document.getElementById('estoque');
-        if (estoqueSection) estoqueSection.scrollIntoView({ behavior: 'smooth' });
-    };
-
     const handleClearFilters = () => {
-        setActiveBrand('all');
-        setSortBy(null);
+      setActiveBrand('all');
+      setSortBy(null);
+      // Reload from DB like 'Todos' + 'Padrão' to reflect stock and reset pagination
+      loadProductsFromDB({ brand: 'all', sort: null });
     };
 
     // Condição para verificar se algum filtro está ativo
@@ -199,20 +231,26 @@ const HomePage = ({ cart, addToCart }) => {
     };
 
     // Aplica a ordenação, se definida
-    const sortedProducts = [...products].sort((a, b) => {
-        if (a.status === 'Anúncio' || b.status === 'Anúncio') return 0;
-
+    const sortedProducts = products.sort((a, b) => {
         switch (sortBy) {
             case 'price_asc':
-                return a.price - b.price;
+                if (a.price !== b.price) return a.price - b.price;
+                break; // Se os preços forem iguais, cai para a ordenação padrão por nome
             case 'price_desc':
-                return b.price - a.price;
+                if (b.price !== a.price) return b.price - a.price;
+                break; // Se os preços forem iguais, cai para a ordenação padrão por nome
             case 'discount_desc':
-                return calculateDiscount(b) - calculateDiscount(a);
+                const discountA = calculateDiscount(a);
+                const discountB = calculateDiscount(b);
+                if (discountB !== discountA) return discountB - discountA;
+                break; // Se os descontos forem iguais, cai para a ordenação padrão por nome
             default:
-                // Ordenação padrão (pode ser por data de criação, etc.)
-                return 0;
+                // A ordenação padrão agora é por nome, garantindo uma ordem estável e previsível.
+                // Isso corrige o bug de duplicação ao paginar.
+                return a.name.localeCompare(b.name);
         }
+        // Fallback para ordenação por nome se o critério principal for igual
+        return a.name.localeCompare(b.name);
     });
 
     // Filtra os produtos pela marca selecionada APÓS a ordenação
@@ -220,35 +258,30 @@ const HomePage = ({ cart, addToCart }) => {
       ? sortedProducts
       : sortedProducts.filter(p => p.brand === activeBrand);
 
-    // 4. Filtra os produtos pela busca, se houver
-    const searchFilteredProducts = searchQuery.trim() === ''
-        ? brandFilteredProducts
-        : brandFilteredProducts.filter(p => {
-            const lowerCaseQuery = searchQuery.toLowerCase();
-            const nameMatch = p.name.toLowerCase().includes(lowerCaseQuery);
-            const brandMatch = p.brand.toLowerCase().includes(lowerCaseQuery);
-            return nameMatch || brandMatch;
-        });
-
-    // Separa o card de anúncio dos produtos normais
-    const adCard = searchFilteredProducts.find(p => p.status === 'Anúncio');
-    const regularProducts = searchFilteredProducts.filter(p => p.status !== 'Anúncio');
+    // O anúncio agora é tratado como um produto normal na lista, simplificando a lógica.
+    const regularProducts = brandFilteredProducts;
   
     // Lógica da Paginação
+    // Correção: Exibir 10 produtos por página. O anúncio será adicionado na última página.
     const productsPerPage = 10;
     const totalPages = Math.ceil(regularProducts.length / productsPerPage);
     const indexOfLastProduct = currentPage * productsPerPage;
     const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
     let currentProducts = regularProducts.slice(indexOfFirstProduct, indexOfLastProduct);
 
-    // Adiciona o anúncio ao final da lista APENAS na última página, se ele existir
-    if (adCard && currentPage === totalPages) {
-        currentProducts.push(adCard);
-    }
     const handlePageChange = (newPage) => {
         if (newPage > 0 && newPage <= totalPages) {
             setCurrentPage(newPage);
-            // A navegação que atualizava a URL foi removida para manter a URL limpa.
+            // Atualiza a query string para refletir a página atual
+            try {
+              const params = new URLSearchParams(location.search);
+              if (newPage > 1) params.set('page', String(newPage));
+              else params.delete('page');
+              const search = params.toString();
+              navigate(location.pathname + (search ? `?${search}` : ''), { replace: false });
+            } catch (err) {
+              console.error('Erro ao atualizar query page:', err);
+            }
         }
     };
 
@@ -259,17 +292,25 @@ const HomePage = ({ cart, addToCart }) => {
         }
 
         if (newPage > 0 && newPage <= totalPages) {
-            setCurrentPage(newPage);
-            // A navegação que atualizava a URL foi removida para manter a URL limpa.
+          setCurrentPage(newPage);
+          try {
+            const params = new URLSearchParams(location.search);
+            if (newPage > 1) params.set('page', String(newPage));
+            else params.delete('page');
+            const search = params.toString();
+            navigate(location.pathname + (search ? `?${search}` : ''), { replace: false });
+          } catch (err) {
+            console.error('Erro ao atualizar query page (bottom):', err);
+          }
 
-            // Adiciona um pequeno delay para garantir que o DOM seja atualizado antes de rolar.
-            setTimeout(() => {
-                const targetElement = document.querySelector('#estoque');
-                if (targetElement) {
-                    // Rola a página para o topo da seção 'estoque' de forma suave.
-                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }, 0);
+          // Adiciona um pequeno delay para garantir que o DOM seja atualizado antes de rolar.
+          setTimeout(() => {
+            const targetElement = document.querySelector('#estoque');
+            if (targetElement) {
+              // Rola a página para o topo da seção 'estoque' de forma suave.
+              targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 0);
         }
     };
 
@@ -318,43 +359,19 @@ const HomePage = ({ cart, addToCart }) => {
           </Link>
         )}
         
-        <Header cart={cart} onSearch={handleSearch} />
+        <Header cart={cart} />
 
         <HeroSection handleNavClick={handleNavClick} products={products} />
 
         <section id="estoque" className="py-12 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4">
-            <div className="mb-8 hidden md:block">
+            {/* Barra de Busca e Filtros */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 md:border-b md:border-gray-200 md:pb-6">
+              {/* Título movido para cá */}
               <div className="text-center md:text-left">
                 <h3 className="text-xl md:text-2xl font-bold text-gray-900">Vitrine Pronta Entrega</h3>
                 <p className="text-sm md:text-base text-gray-500 mt-1">Produtos selecionados para você.</p>
               </div>
-            </div>
-
-            {/* Barra de Busca e Filtros */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 md:border-b md:border-gray-200 md:pb-6">
-              {/* Barra de Busca */}
-              <form onSubmit={(e) => e.preventDefault()} className="relative w-full md:max-w-md hidden md:block">
-                  <input 
-                    type="text" 
-                    name="search" 
-                    value={searchQuery}
-                    placeholder="Buscar na Vitória..." 
-                    className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50"
-                    onChange={(e) => setSearchQuery(e.target.value)} />
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 p-1 text-gray-400">
-                      <Search size={20} />
-                  </div>
-                  {searchQuery && (
-                    <button 
-                      type="button"
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-red-600"
-                    >
-                      <X size={20} />
-                    </button>
-                  )}
-              </form>
 
               {/* Nova Barra de Filtros */}
               <div className="flex justify-center md:justify-end gap-2 w-full md:w-auto">
@@ -445,13 +462,13 @@ const HomePage = ({ cart, addToCart }) => {
           title="Filtrar por Marca"
         >
           <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => { setActiveBrand('all'); setActiveModal(null); }} className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === 'all' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}>
+            <button onClick={() => { setActiveBrand('all'); setActiveModal(null); loadProductsFromDB({ brand: 'all', sort: sortBy }); }} className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === 'all' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}>
               Todos
             </button>
             {brands.filter(b => b.value !== 'all').map(brand => (
               <button
                 key={brand.value}
-                onClick={() => { setActiveBrand(brand.value); setActiveModal(null); }} className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === brand.value ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}>
+                onClick={() => { setActiveBrand(brand.value); setActiveModal(null); loadProductsFromDB({ brand: brand.value, sort: sortBy }); }} className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === brand.value ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}>
                 {brand.label}
               </button>
             ))}
@@ -465,16 +482,16 @@ const HomePage = ({ cart, addToCart }) => {
           title="Ordenar por"
         >
           <div className="flex flex-col gap-3">
-            <button onClick={() => { setSortBy(null); setActiveModal(null); }} className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === null ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}>
+            <button onClick={() => { setSortBy(null); setActiveModal(null); loadProductsFromDB({ brand: activeBrand, sort: null }); }} className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === null ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}>
               Padrão
             </button>
-            <button onClick={() => { setSortBy('price_asc'); setActiveModal(null); }} className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'price_asc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}>
+            <button onClick={() => { setSortBy('price_asc'); setActiveModal(null); loadProductsFromDB({ brand: activeBrand, sort: 'price_asc' }); }} className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'price_asc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}>
               Menor Preço
             </button>
-            <button onClick={() => { setSortBy('price_desc'); setActiveModal(null); }} className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'price_desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}>
+            <button onClick={() => { setSortBy('price_desc'); setActiveModal(null); loadProductsFromDB({ brand: activeBrand, sort: 'price_desc' }); }} className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'price_desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}>
               Maior Preço
             </button>
-            <button onClick={() => { setSortBy('discount_desc'); setActiveModal(null); }} className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'discount_desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}>
+            <button onClick={() => { setSortBy('discount_desc'); setActiveModal(null); loadProductsFromDB({ brand: activeBrand, sort: 'discount_desc' }); }} className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${sortBy === 'discount_desc' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}>
               Maior Desconto
             </button>
           </div>
