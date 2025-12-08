@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, Search, Archive, Edit, MoreVertical, RotateCw, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, X, Percent, CheckCircle, AlertCircle, Megaphone, Trash2, ClipboardPaste } from 'lucide-react';
 import { db } from './firebase';
-import { collection, getDocs, doc, updateDoc, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, addDoc, setDoc, getDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 
 const formatPrice = (price) => {
     // Garante que o preço seja um número, mesmo que venha como string "R$ 199,90"
@@ -454,9 +454,38 @@ const ProductsPage = () => {
         };
 
         try {
-            await updateDoc(productRef, updatedData);
-            // Atualiza o estado local
-            setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...updatedData } : p));
+            const newSlugId = updatedData.slug;
+            // Se o slug/id mudou, criamos um novo documento com id = slug e removemos o antigo
+            if (String(editingProduct.id) !== String(newSlugId)) {
+                const newDocRef = doc(db, 'products', String(newSlugId));
+                const existing = await getDoc(newDocRef);
+                let finalId = String(newSlugId);
+                if (existing.exists()) {
+                    // Colisão: adiciona sufixo único
+                    const suffix = Date.now().toString().slice(-4);
+                    finalId = `${newSlugId}-${suffix}`;
+                }
+
+                const dataToSave = {
+                    ...updatedData,
+                    createdAt: editingProduct.createdAt || serverTimestamp()
+                };
+                // Garante que o `link` aponte para o id final (tratando colisões)
+                dataToSave.link = `https://redvitoria.pages.dev/produto/${finalId}`;
+
+                await setDoc(doc(db, 'products', String(finalId)), dataToSave);
+                await deleteDoc(productRef);
+
+                // Atualiza estado local substituindo o antigo pelo novo
+                setProducts(products.map(p => p.id === editingProduct.id ? ({ id: finalId, ...dataToSave }) : p));
+                console.log('Produto atualizado: moved', editingProduct.id, '->', finalId, dataToSave.link);
+                setToastMessage({ type: 'success', message: `Produto movido para novo ID: ${finalId}` });
+            } else {
+                // Mesmo id: atualiza o documento existente
+                await updateDoc(productRef, updatedData);
+                setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...updatedData } : p));
+            }
+
             setEditingProduct(null); // Fecha o modal
             setToastMessage({ type: 'success', message: 'Produto atualizado com sucesso!' });
         } catch (error) {
@@ -512,11 +541,31 @@ const ProductsPage = () => {
                 createdAt: serverTimestamp()
             };
 
-            const docRef = await addDoc(collection(db, "products"), productData);
+            // Tenta criar o documento com id = slug. Se já existir, adiciona um sufixo para evitar colisão.
+            const baseId = productData.slug;
+            let finalId = String(baseId);
+            const newDocRef = doc(db, 'products', finalId);
+            const exists = await getDoc(newDocRef);
+            if (exists.exists()) {
+                const suffix = Date.now().toString().slice(-4);
+                finalId = `${finalId}-${suffix}`;
+            }
+
+            const dataToSave = {
+                ...productData,
+                createdAt: serverTimestamp()
+            };
+
+            // Atualiza o link para usar o id final (caso tenha sido alterado por colisão)
+            dataToSave.link = `https://redvitoria.pages.dev/produto/${finalId}`;
+
+            await setDoc(doc(db, 'products', String(finalId)), dataToSave);
 
             // Adiciona o novo produto ao estado local para atualização instantânea da UI
-            const newProductWithId = { id: docRef.id, ...productData };
+            const newProductWithId = { id: String(finalId), ...dataToSave };
             setProducts(prevProducts => [newProductWithId, ...prevProducts]);
+            console.log('Produto criado com id:', finalId, newProductWithId.link);
+            setToastMessage({ type: 'success', message: `Produto criado com ID: ${finalId}` });
 
             setIsAddModalOpen(false); // Fecha o modal
             setToastMessage({ type: 'success', message: 'Produto adicionado com sucesso!' });

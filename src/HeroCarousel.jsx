@@ -12,7 +12,7 @@ const HeroCarousel = ({ products = [] }) => {
       id: p.id,
       image: p.image,
       alt: p.name,
-      link: `/produto/${p.id}`
+      link: p.link && p.link.trim() ? p.link : `/produto/${p.id}`
     }));
 
   const prevSlide = () => {
@@ -37,11 +37,20 @@ const HeroCarousel = ({ products = [] }) => {
     return <div className="relative w-full h-48 md:h-64 lg:h-[340px] bg-gray-200 animate-pulse"></div>;
   }
 
+  const currentLink = banners[currentIndex].link;
+  const isInternal = currentLink && (currentLink.startsWith('/') || currentLink.includes(window.location.origin) || currentLink.includes('/produto/'));
+
   return (
     <div className="relative w-full h-48 md:h-64 lg:h-[340px] group">
-      <Link to={banners[currentIndex].link}>
-        <div style={{ backgroundImage: `url(${banners[currentIndex].image})` }} className="w-full h-full bg-center bg-cover duration-500"></div>
-      </Link>
+      {isInternal ? (
+        <Link to={new URL(currentLink, window.location.href).pathname + new URL(currentLink, window.location.href).search + new URL(currentLink, window.location.href).hash}>
+          <div style={{ backgroundImage: `url(${banners[currentIndex].image})` }} className="w-full h-full bg-center bg-cover duration-500"></div>
+        </Link>
+      ) : (
+        <a href={currentLink} target="_blank" rel="noopener noreferrer">
+          <div style={{ backgroundImage: `url(${banners[currentIndex].image})` }} className="w-full h-full bg-center bg-cover duration-500"></div>
+        </a>
+      )}
       {/* Left Arrow */}
       <div className="hidden group-hover:block absolute top-1/2 -translate-y-1/2 left-5 text-2xl rounded-full p-2 bg-black/20 text-white cursor-pointer">
         <ChevronLeft onClick={prevSlide} size={30} />

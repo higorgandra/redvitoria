@@ -53,8 +53,10 @@ const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted, c
     e.stopPropagation(); // Impede que outros eventos de clique sejam acionados
     if (hasCopied) return; // Impede múltiplos cliques enquanto o "check" está visível
     
-    // Gera uma URL com um parâmetro de consulta para o produto específico.
-    const productUrl = `${window.location.origin}/produto/${product.id}`; 
+    // Usa o `product.link` se existir (slug/URL final). Caso contrário, fallback para a rota interna por id.
+      const productUrl = product.link && product.link.trim()
+        ? product.link
+        : `${window.location.origin}/produto/${product.id}`;
     navigator.clipboard.writeText(productUrl).then(() => {
       setHasCopied(true);
       // Reseta o estado do botão após 2 segundos
@@ -64,7 +66,7 @@ const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted, c
     }).catch(err => {
       console.error('Falha ao copiar o link: ', err);
       // Opcional: mostrar uma mensagem de erro ao usuário
-      setIsShareMenuOpen(false);
+      // setIsShareMenuOpen não existe aqui — apenas logamos o erro
     });
   };
 
@@ -97,6 +99,56 @@ const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted, c
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
     const scrollPos = pointerScrollRef.current !== null ? pointerScrollRef.current : (typeof window !== 'undefined' ? window.scrollY : 0);
     const state = { page: currentPage || 1, scrollPosition: scrollPos };
+    const rawLink = product.link && product.link.trim() ? product.link.trim() : null;
+
+    // Adiciona logs para depuração do fluxo de navegação
+    console.log('ProductCard: navigating', { id: product.id, slug: product.slug, link: rawLink, isAd });
+
+    // Se for um anúncio, preferimos abrir o link (se existir) em nova aba e registrar clique.
+    if (isAd) {
+      if (rawLink) {
+        try {
+          const url = new URL(rawLink, window.location.href);
+          console.log('ProductCard: ad -> opening external', url.href);
+          window.open(url.href, '_blank', 'noopener');
+          return;
+        } catch (err) {
+          // Se não for uma URL válida, cair para o fallback interno
+          console.error('Erro ao interpretar product.link para anúncio:', err);
+        }
+      }
+      // Sem link específico para anúncio, fallback para detalhe por id
+      navigate(`/produto/${product.id}`, { state });
+      return;
+    }
+
+    // Para produtos normais: se o link parecer interno (startsWith '/' ou contém '/produto/' ou mesma origem), navegar via router.
+    if (rawLink) {
+      // startsWith('/') => caminho interno
+      if (rawLink.startsWith('/')) {
+        navigate(rawLink, { state });
+        console.log('ProductCard: internal path (startsWith /) ->', rawLink);
+        return;
+      }
+      try {
+        const url = new URL(rawLink, window.location.href);
+        const path = url.pathname + url.search + url.hash;
+        // Se a URL pertence ao mesmo origin ou contém '/produto/' no pathname, tratar como interna
+        if (url.origin === window.location.origin || url.pathname.includes('/produto/')) {
+          navigate(path, { state });
+          console.log('ProductCard: internal url ->', path);
+          return;
+        }
+        // Caso contrário, é externa — abrir em nova aba
+        window.open(url.href, '_blank', 'noopener');
+        console.log('ProductCard: external url ->', url.href);
+        return;
+      } catch (err) {
+        console.error('Erro ao interpretar product.link, fallback para id:', err);
+      }
+    }
+
+    // Fallback final: navegar para a rota interna por id
     navigate(`/produto/${product.id}`, { state });
   };
 
@@ -109,8 +161,7 @@ const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted, c
     >
       {/* Image Section */}
       <a
-        to={`/produto/${product.id}`}
-        href={`/produto/${product.id}`}
+        href={product.link && product.link.trim() ? product.link : `/produto/${product.id}`}
         className="block"
         onPointerDown={handlePointerDown}
         onTouchStart={handlePointerDown}
@@ -146,7 +197,7 @@ const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted, c
       <div className="p-3 flex-1 flex flex-col">
         <div className="flex-grow">
           <a
-            href={`/produto/${product.id}`}
+            href={product.link && product.link.trim() ? product.link : `/produto/${product.id}`}
             onClick={handleClickNavigate}
             onPointerDown={handlePointerDown}
             onTouchStart={handlePointerDown}

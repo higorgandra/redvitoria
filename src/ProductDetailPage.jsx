@@ -21,11 +21,23 @@ const ProductDetailPage = ({ cart, addToCart }) => {
         const fetchProduct = async () => {
             setLoading(true);
             try {
+                let productData = null;
                 const docRef = doc(db, "products", productId);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
-                    const productData = { id: docSnap.id, ...docSnap.data() };
+                    productData = { id: docSnap.id, ...docSnap.data() };
+                } else {
+                    // Tentativa alternativa: procurar por slug caso o productId seja na verdade um slug
+                    const q = query(collection(db, 'products'), where('slug', '==', productId), limit(1));
+                    const qSnap = await getDocs(q);
+                    if (!qSnap.empty) {
+                        const found = qSnap.docs[0];
+                        productData = { id: found.id, ...found.data() };
+                    }
+                }
+
+                if (productData) {
                     setProduct(productData);
 
                     // CORREÇÃO: Simplificando a query para evitar o erro de índice do Firebase.
@@ -33,16 +45,13 @@ const ProductDetailPage = ({ cart, addToCart }) => {
                     const relatedQuery = query(
                         collection(db, "products"),
                         where("brand", "==", productData.brand),
-                        limit(10) // Pega mais itens para ter margem para filtrar
+                        limit(10)
                     );
                     const relatedSnapshot = await getDocs(relatedQuery);
                     const relatedList = relatedSnapshot.docs
                         .map(doc => ({ id: doc.id, ...doc.data() }))
                         .filter(p => p.id !== productData.id && p.status === 'Ativo'); // Exclui o produto atual e filtra por status 'Ativo'
                     setRelatedProducts(relatedList.slice(0, 4)); // Garante no máximo 4
-                } else {
-                    // Produto não encontrado, poderia redirecionar para uma página 404.
-                    // Opcional: redirecionar para uma página 404
                 }
             } catch (error) {
                 console.error("Erro ao buscar produto:", error);
@@ -65,10 +74,11 @@ const ProductDetailPage = ({ cart, addToCart }) => {
         // Garante que a função só execute se o produto já estiver carregado.
         if (!product) return;
 
+        const shareUrl = product.link && product.link.trim() ? product.link : window.location.href;
         const shareData = {
             title: product.name,
             text: `Confira este produto na RedVitoria: ${product.name}`,
-            url: window.location.href
+            url: shareUrl
         };
 
         if (navigator.share) {
@@ -80,7 +90,7 @@ const ProductDetailPage = ({ cart, addToCart }) => {
         } else {
             // Fallback para navegadores que não suportam a Web Share API
             try {
-                await navigator.clipboard.writeText(window.location.href);
+                await navigator.clipboard.writeText(shareUrl);
                 setShareFeedback('Link copiado!');
                 setTimeout(() => setShareFeedback('Compartilhar este produto'), 2000);
             } catch (error) {
