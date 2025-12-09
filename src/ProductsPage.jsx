@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PlusCircle, Search, Archive, Edit, MoreVertical, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, X, CheckCircle, AlertCircle, Megaphone, Trash2, ClipboardPaste } from 'lucide-react';
 import { db } from './firebase';
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -19,6 +19,10 @@ export default function ProductsPage() {
   const [archiveConfirmId, setArchiveConfirmId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
+
+  // Ref para rastrear o último campo modificado pelo usuário no formulário
+  const lastChangedFieldRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -68,8 +72,80 @@ export default function ProductsPage() {
     return text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
   };
 
-  const handleNewProductChange = (e) => { const { name, value } = e.target; setNewProductData(prev => ({ ...prev, [name]: value })); };
-  const handleEditFormChange = (e) => { const { name, value } = e.target; setEditFormData(prev => ({ ...prev, [name]: value })); };
+  const handleNewProductChange = (e) => {
+    const { name, value } = e.target;
+    lastChangedFieldRef.current = name;
+    // Limpa o erro do campo ao ser modificado
+    if (formErrors[name]) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+    setNewProductData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    lastChangedFieldRef.current = name;
+    // A validação de edição pode ser adicionada aqui de forma similar, se necessário
+    setEditFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Efeito para calcular os campos de preço dinamicamente
+  useEffect(() => {
+    const calculatePrices = (data, setData) => {
+      const fullPrice = parseFloat(String(data.fullPrice).replace(',', '.')) || 0;
+      const discount = parseFloat(String(data.discountPercentage).replace(',', '.')) || 0;
+      const price = parseFloat(String(data.price).replace(',', '.')) || 0;
+
+      let updatedValues = {};
+
+      if (lastChangedFieldRef.current === 'fullPrice' || lastChangedFieldRef.current === 'discountPercentage') {
+        if (fullPrice > 0) {
+          const newPrice = fullPrice * (1 - discount / 100);
+          if (newPrice.toFixed(2) !== price.toFixed(2)) {
+            updatedValues.price = newPrice.toFixed(2);
+          }
+        }
+      } else if (lastChangedFieldRef.current === 'price') {
+        if (fullPrice > 0 && price > 0 && fullPrice > price) {
+          const newDiscount = ((fullPrice - price) / fullPrice) * 100;
+          if (Math.round(newDiscount) !== Math.round(discount)) {
+            updatedValues.discountPercentage = Math.round(newDiscount);
+          }
+        } else if (price >= fullPrice) {
+          // Se o preço final for maior ou igual ao cheio, o desconto é 0
+          if (discount !== 0) {
+            updatedValues.discountPercentage = 0;
+          }
+        }
+      }
+
+      if (Object.keys(updatedValues).length > 0) {
+        setData(prevData => ({
+          ...prevData,
+          ...updatedValues
+        }));
+      }
+    };
+
+    // Aplica a lógica para o formulário de edição
+    if (editingProduct) {
+      calculatePrices(editFormData, setEditFormData);
+    }
+    // Aplica a lógica para o formulário de novo produto
+    else if (isAddModalOpen) {
+      calculatePrices(newProductData, setNewProductData);
+    }
+
+  }, [
+    isAddModalOpen, newProductData.fullPrice, newProductData.discountPercentage, newProductData.price,
+    editingProduct, editFormData.fullPrice, editFormData.discountPercentage, editFormData.price
+  ]);
+
+
 
   const handlePasteFromClipboard = async (formType) => {
     try {
@@ -83,17 +159,37 @@ export default function ProductsPage() {
   };
 
   const handleAddNewProduct = async () => {
-    const adExists = products.some(p => p.status === 'Anúncio');
-    if (newProductData.brand === 'anuncio' && adExists) return setToastMessage({ type: 'error', message: 'Apenas um anúncio é permitido. Arquive o existente para criar um novo.' });
-
+    setFormErrors({}); // Limpa erros anteriores
+    const errors = {};
     const isAd = newProductData.brand === 'anuncio';
 
-    if (!newProductData.name.trim()) return setToastMessage({ type: 'error', message: 'O nome do produto é obrigatório.' });
-    if (!newProductData.image.trim()) return setToastMessage({ type: 'error', message: 'O link da imagem é obrigatório.' });
-    if (!isAd && (!newProductData.fullPrice || parseFloat(newProductData.fullPrice) <= 0)) return setToastMessage({ type: 'error', message: 'O "Valor Cheio" é obrigatório e deve ser maior que zero.' });
-    if (!isAd && (newProductData.discountPercentage === '' || isNaN(parseFloat(newProductData.discountPercentage)))) return setToastMessage({ type: 'error', message: 'O campo "Desconto" é obrigatório (pode ser 0).' });
-    if (!isAd && (!newProductData.price || parseFloat(newProductData.price) <= 0)) return setToastMessage({ type: 'error', message: 'O "Preço Final" é obrigatório e deve ser maior que zero.' });
+    // Validações
+    if (!newProductData.name.trim()) errors.name = 'O nome do produto é obrigatório.';
+
+    if (isAd) {
+      if (!newProductData.link?.trim()) errors.link = 'O link do anúncio é obrigatório.';
+    } else {
+      if (!newProductData.image.trim()) errors.image = 'O link da imagem é obrigatório.';
+      if (!newProductData.fullPrice || parseFloat(String(newProductData.fullPrice).replace(',', '.')) <= 0) errors.fullPrice = 'O "Valor Cheio" é obrigatório.';
+      if (newProductData.discountPercentage === '' || isNaN(parseFloat(String(newProductData.discountPercentage).replace(',', '.')))) errors.discountPercentage = 'O "Desconto" é obrigatório.';
+      if (!newProductData.price || parseFloat(String(newProductData.price).replace(',', '.')) <= 0) errors.price = 'O "Preço Final" é obrigatório.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      setToastMessage({ type: 'error', message: 'Por favor, preencha os campos obrigatórios.' });
+      return;
+    }
+
+    const adExists = products.some(p => p.status === 'Anúncio');
+    if (isAd && adExists) {
+      setToastMessage({ type: 'error', message: 'Apenas um anúncio é permitido. Arquive o existente para criar um novo.' });
+      return;
+    }
+
     try {
+      // Limpa os erros e o formulário ao submeter com sucesso
+      setFormErrors({});
       const brandPrefix = (newProductData.brand || '').substring(0, 3).toUpperCase();
       const uniqueNumber = Date.now().toString().slice(-4);
       const generatedSku = `${brandPrefix}-${uniqueNumber}`;
@@ -105,14 +201,12 @@ export default function ProductsPage() {
       if (existing.exists()) finalId = `${finalId}-${Date.now().toString().slice(-4)}`;
       const status = isAd ? 'Anúncio' : ((isNaN(stock) || stock === 0) ? 'Sem Estoque' : 'Ativo');
       const dataToSave = { ...newProductData, price: isAd ? 0 : parseFloat(newProductData.price), fullPrice: isAd ? 0 : parseFloat(newProductData.fullPrice), stock: isAd ? 0 : (isNaN(stock) ? 0 : stock), slug, sku: generatedSku, discountPercentage: isAd ? 0 : (parseFloat(newProductData.discountPercentage) || 0), description: newProductData.description || '', status: status, link: isAd ? (newProductData.link || '') : `https://redvitoria.pages.dev/produto/${finalId}`, createdAt: serverTimestamp() };
-      await setDoc(doc(db, 'products', String(finalId)), dataToSave);
+      await setDoc(doc(db, 'products', finalId), dataToSave);
       console.log('[ProductsPage] added product id=', String(finalId), 'slug=', slug);
-      setProducts(prev => {
-        const exists = prev.some(p => p.id === docRef.id);
-        if (exists) return prev;
-        return [{ id: docRef.id, ...newAdData }, ...prev];
-      });
-      setToastMessage({ type: 'success', message: 'Anúncio criado! Edite para personalizar.' });
+      setProducts(prev => [{ id: finalId, ...dataToSave }, ...prev]);
+      setIsAddModalOpen(false);
+      setNewProductData({ name: '', image: '', brand: 'boticario', stock: 0, fullPrice: '', discountPercentage: '', price: '', description: '', slug: '' });
+      setToastMessage({ type: 'success', message: 'Produto criado com sucesso!' });
     } catch (err) {
       console.error('Erro ao adicionar anúncio:', err);
       setToastMessage({ type: 'error', message: 'Não foi possível criar o anúncio.' });
@@ -341,7 +435,7 @@ export default function ProductsPage() {
       {/* Add/Edit Modal */}
       {(isAddModalOpen || editingProduct) && (
         <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => { setIsAddModalOpen(false); setEditingProduct(null); }} />
+          <div className="absolute inset-0 bg-black/40" onClick={() => { setIsAddModalOpen(false); setEditingProduct(null); setFormErrors({}); }} />
           <div className="bg-white rounded-lg shadow-lg z-10 max-w-2xl w-full max-h-[90vh] flex flex-col">
             <div className="p-6 border-b">
               <h3 className="text-lg font-semibold">{editingProduct ? 'Editar Produto' : 'Adicionar Novo Produto'}</h3>
@@ -358,7 +452,8 @@ export default function ProductsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">Nome do Produto</label>
-                      <input type="text" name="name" value={editingProduct ? editFormData.name : newProductData.name} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className="w-full p-2 border rounded" />
+                      <input type="text" name="name" value={editingProduct ? editFormData.name : newProductData.name} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className={`w-full p-2 border rounded ${formErrors.name ? 'border-red-500' : ''}`} />
+                      {formErrors.name && <p className="text-xs text-red-600 mt-1">{formErrors.name}</p>}
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Marca</label>
@@ -370,24 +465,28 @@ export default function ProductsPage() {
                   <div>
                     <label className="block text-sm font-medium mb-1">{isAdForm ? 'Link do Anúncio' : 'Link da Imagem'}</label>
                     <div className="flex gap-2">
-                      <input type="text" name={isAdForm ? 'link' : 'image'} value={editingProduct ? (isAdForm ? editFormData.link : editFormData.image) : (isAdForm ? newProductData.link : newProductData.image)} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className="w-full p-2 border rounded" />
+                      <input type="text" name={isAdForm ? 'link' : 'image'} value={editingProduct ? (isAdForm ? editFormData.link : editFormData.image) : (isAdForm ? newProductData.link : newProductData.image)} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className={`w-full p-2 border rounded ${formErrors.image || formErrors.link ? 'border-red-500' : ''}`} />
                       {!isAdForm && <button onClick={() => handlePasteFromClipboard(editingProduct ? 'edit' : 'new')} className="p-2 border rounded" title="Colar da área de transferência"><ClipboardPaste size={16} /></button>}
                     </div>
+                    {(formErrors.image || formErrors.link) && <p className="text-xs text-red-600 mt-1">{formErrors.image || formErrors.link}</p>}
                   </div>
                   {!isAdForm && (
                     <>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
                           <label className="block text-sm font-medium mb-1">Valor Cheio (R$)</label>
-                          <input type="number" name="fullPrice" value={editingProduct ? editFormData.fullPrice : newProductData.fullPrice} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className="w-full p-2 border rounded" placeholder="Ex: 129.90" />
+                          <input type="number" name="fullPrice" value={editingProduct ? editFormData.fullPrice : newProductData.fullPrice} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className={`w-full p-2 border rounded ${formErrors.fullPrice ? 'border-red-500' : ''}`} placeholder="Ex: 129.90" />
+                          {formErrors.fullPrice && <p className="text-xs text-red-600 mt-1">{formErrors.fullPrice}</p>}
                         </div>
                         <div>
                           <label className="block text-sm font-medium mb-1">Desconto (%)</label>
-                          <input type="number" name="discountPercentage" value={editingProduct ? editFormData.discountPercentage : newProductData.discountPercentage} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className="w-full p-2 border rounded" placeholder="Ex: 20" />
+                          <input type="number" name="discountPercentage" value={editingProduct ? editFormData.discountPercentage : newProductData.discountPercentage} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className={`w-full p-2 border rounded ${formErrors.discountPercentage ? 'border-red-500' : ''}`} placeholder="Ex: 20" />
+                          {formErrors.discountPercentage && <p className="text-xs text-red-600 mt-1">{formErrors.discountPercentage}</p>}
                         </div>
                         <div>
                           <label className="block text-sm font-medium mb-1">Preço Final (R$)</label>
-                          <input type="number" name="price" value={editingProduct ? editFormData.price : newProductData.price} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className="w-full p-2 border rounded" placeholder="Ex: 103.92" />
+                          <input type="number" name="price" value={editingProduct ? editFormData.price : newProductData.price} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className={`w-full p-2 border rounded ${formErrors.price ? 'border-red-500' : ''}`} placeholder="Ex: 103.92" />
+                          {formErrors.price && <p className="text-xs text-red-600 mt-1">{formErrors.price}</p>}
                         </div>
                         <div>
                           <label className="block text-sm font-medium mb-1">Estoque</label>
@@ -414,7 +513,7 @@ export default function ProductsPage() {
               })()}
             </div>
             <div className="p-4 bg-gray-50 border-t flex justify-end gap-3">
-              <button onClick={() => { setIsAddModalOpen(false); setEditingProduct(null); }} className="px-4 py-2 border rounded">Cancelar</button>
+              <button onClick={() => { setIsAddModalOpen(false); setEditingProduct(null); setFormErrors({}); }} className="px-4 py-2 border rounded">Cancelar</button>
               <button onClick={editingProduct ? () => handleUpdateProduct() : handleAddNewProduct} className="px-4 py-2 bg-[#8B0000] text-white rounded">{editingProduct ? 'Salvar Alterações' : 'Adicionar Produto'}</button>
             </div>
           </div>
