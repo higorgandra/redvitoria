@@ -270,7 +270,28 @@ export default function ProductsPage() {
       else if (stock === 0 && status !== 'Arquivado') status = 'Sem Estoque';
     }
     const newSlug = editFormData.slug ? generateSlug(editFormData.slug) : generateSlug(editFormData.name);
-    const updatedData = { ...editFormData, price: parseFloat(editFormData.price), fullPrice: parseFloat(editFormData.fullPrice), stock: isNaN(stock) ? 0 : stock, slug: newSlug, discountPercentage: parseFloat(editFormData.discountPercentage) || 0, link: status === 'Anúncio' ? (editFormData.link || '') : `https://redvitoria.pages.dev/produto/${newSlug}`, description: editFormData.description || '', status };
+    
+    const price = parseFloat(String(editFormData.price).replace(',', '.'));
+    const fullPrice = parseFloat(String(editFormData.fullPrice).replace(',', '.'));
+    const discountPercentage = parseFloat(String(editFormData.discountPercentage).replace(',', '.')) || 0;
+
+    if (status !== 'Anúncio' && (isNaN(price) || isNaN(fullPrice))) {
+      setToastMessage({ type: 'error', message: 'Por favor, verifique os valores de preço.' });
+      return;
+    }
+
+    const updatedData = { 
+      ...editFormData, 
+      price: isNaN(price) ? 0 : price, 
+      fullPrice: isNaN(fullPrice) ? 0 : fullPrice, 
+      stock: isNaN(stock) ? 0 : stock, 
+      slug: newSlug, 
+      discountPercentage, 
+      link: status === 'Anúncio' ? (editFormData.link || '') : `https://redvitoria.pages.dev/produto/${newSlug}`, 
+      description: editFormData.description || '', 
+      status 
+    };
+
     try {
       await updateDoc(doc(db, 'products', productId), updatedData);
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, ...updatedData } : p));
@@ -378,14 +399,14 @@ export default function ProductsPage() {
                   <div className="flex gap-2 justify-end">
                     {view === 'archived' || product.status === 'Arquivado' ? (
                       <>
-                        <button onClick={() => handleRestoreProduct(product.id)} className="px-3 py-1 bg-green-50 text-green-700 rounded border">Restaurar</button>
-                        <button onClick={() => handleDeleteClick(product.id)} className="px-3 py-1 bg-red-50 text-red-700 rounded border">Excluir</button>
+                        <button onClick={() => handleRestoreProduct(product.id)} className="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded border"><CheckCircle size={16} /> Restaurar</button>
+                        <button onClick={() => handleDeleteClick(product.id)} className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-700 rounded border"><Trash2 size={16} /> Excluir</button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => handleEditClick(product)} className="px-3 py-1 bg-yellow-50 rounded border">Editar</button>
-                        <button onClick={() => { setArchiveConfirmId(product.id); }} className="px-3 py-1 bg-gray-50 rounded border">Arquivar</button>
-                        <button onClick={() => handleDeleteClick(product.id)} className="px-3 py-1 bg-red-50 text-red-700 rounded border">Excluir</button>
+                        <button onClick={() => handleEditClick(product)} className="flex items-center gap-2 px-3 py-1 bg-yellow-50 rounded border"><Edit size={16} /> Editar</button>
+                        <button onClick={() => { setArchiveConfirmId(product.id); }} className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded border"><Archive size={16} /> Arquivar</button>
+                        <button onClick={() => handleDeleteClick(product.id)} className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-700 rounded border"><Trash2 size={16} /> Excluir</button>
                       </>
                     )}
                   </div>
