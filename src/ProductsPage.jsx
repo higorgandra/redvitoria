@@ -20,9 +20,17 @@ export default function ProductsPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
   const [formErrors, setFormErrors] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
 
   // Ref para rastrear o último campo modificado pelo usuário no formulário
   const lastChangedFieldRef = useRef(null);
+
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
 
   useEffect(() => {
     let mounted = true;
@@ -173,6 +181,7 @@ export default function ProductsPage() {
       if (!newProductData.fullPrice || parseFloat(String(newProductData.fullPrice).replace(',', '.')) <= 0) errors.fullPrice = 'O "Valor Cheio" é obrigatório.';
       if (newProductData.discountPercentage === '' || isNaN(parseFloat(String(newProductData.discountPercentage).replace(',', '.')))) errors.discountPercentage = 'O "Desconto" é obrigatório.';
       if (!newProductData.price || parseFloat(String(newProductData.price).replace(',', '.')) <= 0) errors.price = 'O "Preço Final" é obrigatório.';
+      if (parseInt(newProductData.stock, 10) <= 0) errors.stock = 'O estoque deve ser maior que zero.';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -187,6 +196,7 @@ export default function ProductsPage() {
       return;
     }
 
+    setIsSaving(true);
     try {
       // Limpa os erros e o formulário ao submeter com sucesso
       setFormErrors({});
@@ -210,6 +220,8 @@ export default function ProductsPage() {
     } catch (err) {
       console.error('Erro ao adicionar anúncio:', err);
       setToastMessage({ type: 'error', message: 'Não foi possível criar o anúncio.' });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -218,6 +230,7 @@ export default function ProductsPage() {
       await updateDoc(doc(db, 'products', String(productId)), { status: 'Arquivado' });
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, status: 'Arquivado' } : p));
       setArchiveConfirmId(null);
+      setToastMessage({ type: 'success', message: 'Produto arquivado com sucesso!' });
     } catch (err) {
       console.error('Erro ao arquivar produto:', err);
       setToastMessage({ type: 'error', message: 'Não foi possível arquivar o produto.' });
@@ -228,6 +241,7 @@ export default function ProductsPage() {
     try {
       await updateDoc(doc(db, 'products', String(productId)), { status: 'Ativo' });
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, status: 'Ativo' } : p));
+      setToastMessage({ type: 'success', message: 'Produto restaurado com sucesso!' });
     } catch (err) {
       console.error('Erro ao restaurar produto:', err);
       setToastMessage({ type: 'error', message: 'Não foi possível restaurar o produto.' });
@@ -252,8 +266,10 @@ export default function ProductsPage() {
   const handleDropdownToggle = (e, productId) => { e.stopPropagation(); setActiveDropdownId(prev => (prev === productId ? null : productId)); };
 
   const handleEditClick = (product) => {
+    lastChangedFieldRef.current = null; // Reseta o rastreamento para evitar recálculos automáticos indesejados ao abrir
     setEditingProduct(product);
-    const fullPrice = product.fullPrice || (product.price ? product.price * 2 : 0);
+    // Correção: Se não houver fullPrice, assume o preço atual (sem desconto) em vez de dobrar o valor
+    const fullPrice = product.fullPrice || product.price || 0;
     const price = product.price || 0;
     let discountPercentage = 0;
     if (fullPrice > 0 && price > 0 && fullPrice > price) discountPercentage = ((fullPrice - price) / fullPrice) * 100;
@@ -265,6 +281,12 @@ export default function ProductsPage() {
     const productId = String(editingProduct.id);
     const stock = parseInt(editFormData.stock, 10);
     let status = editFormData.status;
+
+    if (status !== 'Anúncio' && (isNaN(stock) || stock < 0)) {
+      setToastMessage({ type: 'error', message: 'O estoque não pode ser negativo.' });
+      return;
+    }
+
     if (status !== 'Anúncio') {
       if (publish) status = stock > 0 ? 'Ativo' : 'Sem Estoque';
       else if (stock === 0 && status !== 'Arquivado') status = 'Sem Estoque';
@@ -292,6 +314,7 @@ export default function ProductsPage() {
       status 
     };
 
+    setIsSaving(true);
     try {
       await updateDoc(doc(db, 'products', productId), updatedData);
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, ...updatedData } : p));
@@ -300,6 +323,8 @@ export default function ProductsPage() {
     } catch (err) {
       console.error('Erro ao atualizar produto:', err);
       setToastMessage({ type: 'error', message: 'Não foi possível atualizar o produto.' });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -344,7 +369,7 @@ export default function ProductsPage() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Produtos</h1>
         <div className="flex gap-2">
-          <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-[#8B0000] text-white rounded-lg font-semibold shadow-sm hover:bg-[#650000] transition-colors"><PlusCircle size={16} /> Novo Produto</button>
+          <button onClick={() => { lastChangedFieldRef.current = null; setIsAddModalOpen(true); }} className="flex items-center gap-2 px-4 py-2 bg-[#8B0000] text-white rounded-lg font-semibold shadow-sm hover:bg-[#650000] transition-colors"><PlusCircle size={16} /> Novo Produto</button>
         </div>
       </div>
 
@@ -511,7 +536,8 @@ export default function ProductsPage() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium mb-1">Estoque</label>
-                          <input type="number" name="stock" value={editingProduct ? editFormData.stock : newProductData.stock} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className="w-full p-2 border rounded" />
+                          <input type="number" name="stock" value={editingProduct ? editFormData.stock : newProductData.stock} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className={`w-full p-2 border rounded ${formErrors.stock ? 'border-red-500' : ''}`} />
+                          {formErrors.stock && <p className="text-xs text-red-600 mt-1">{formErrors.stock}</p>}
                         </div>
                       </div>
                       <div>
@@ -534,9 +560,26 @@ export default function ProductsPage() {
               })()}
             </div>
             <div className="p-4 bg-gray-50 border-t flex justify-end gap-3">
-              <button onClick={() => { setIsAddModalOpen(false); setEditingProduct(null); setFormErrors({}); }} className="px-4 py-2 border rounded">Cancelar</button>
-              <button onClick={editingProduct ? () => handleUpdateProduct() : handleAddNewProduct} className="px-4 py-2 bg-[#8B0000] text-white rounded">{editingProduct ? 'Salvar Alterações' : 'Adicionar Produto'}</button>
+              <button onClick={() => { setIsAddModalOpen(false); setEditingProduct(null); setFormErrors({}); }} className="px-4 py-2 border rounded" disabled={isSaving}>Cancelar</button>
+              <button onClick={editingProduct ? () => handleUpdateProduct() : handleAddNewProduct} className="px-4 py-2 bg-[#8B0000] text-white rounded flex items-center gap-2" disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Salvando...</span>
+                  </>
+                ) : (editingProduct ? 'Salvar Alterações' : 'Adicionar Produto')}
+              </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white transition-all transform duration-300 z-50 ${toastMessage.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+          <div className="flex items-center gap-2">
+            {toastMessage.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+            <span>{toastMessage.message}</span>
+            <button onClick={() => setToastMessage(null)} className="ml-4 hover:opacity-80"><X size={16} /></button>
           </div>
         </div>
       )}
