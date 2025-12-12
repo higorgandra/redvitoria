@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PlusCircle, Search, Archive, Edit, MoreVertical, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, X, CheckCircle, AlertCircle, Megaphone, Trash2, ClipboardPaste, RefreshCw } from 'lucide-react';
+import { PlusCircle, Search, Archive, Edit, MoreVertical, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, X, CheckCircle, AlertCircle, Megaphone, Trash2, ClipboardPaste, RefreshCw, Image as ImageIcon } from 'lucide-react';
 import { db } from './firebase';
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
 
@@ -39,30 +39,55 @@ export default function ProductsPage() {
       const list = [];
       snap.forEach(d => {
         const data = d.data() || {};
+        // Normaliza o status para evitar inconsistências (ex: "arquivado" vs "Arquivado")
+        let status = data.status || 'Ativo';
+        status = status.charAt(0).toUpperCase() + status.slice(1);
+
         const priceAsNumber = typeof data.price === 'string' ? parseFloat(String(data.price).replace('R$', '').replace('.', '').replace(',', '.').trim()) : data.price;
-        list.push({ id: d.id, ...data, price: isNaN(priceAsNumber) ? 0 : priceAsNumber });
+        list.push({ id: d.id, ...data, status, price: isNaN(priceAsNumber) ? 0 : priceAsNumber });
       });
-      // Before setting state, detect and remove known duplicate product entries
-      // Target product name provided by user
-      const duplicateTargetName = 'Body Splash Luna Radiante Desodorante Colônia Feminino Natura 200ml';
-      const duplicates = list.filter(p => p.name === duplicateTargetName);
-      if (duplicates.length > 1) {
-        // Keep one record: prefer non-archived, otherwise the first
-        const keep = duplicates.find(p => p.status !== 'Arquivado') || duplicates[0];
-        const toRemove = duplicates.filter(p => p.id !== keep.id);
-        console.log('[ProductsPage] Cleaning up duplicate products, keeping id=', keep.id, 'removing=', toRemove.map(t => t.id));
-        for (const rem of toRemove) {
+      
+      // Lógica de Deduplicação Genérica (Corrige duplicatas como "Florata Red")
+      const uniqueMap = new Map();
+      const duplicatesToRemove = [];
+
+      list.forEach(product => {
+        // Chave única baseada no Slug ou Nome (normalizado)
+        const key = (product.slug || product.name || '').toLowerCase().trim();
+        if (!key) return;
+
+        if (uniqueMap.has(key)) {
+          const existing = uniqueMap.get(key);
+          // Se já existe, decide qual manter (prefere Ativo > Arquivado)
+          const isExistingArchived = existing.status === 'Arquivado';
+          const isCurrentArchived = product.status === 'Arquivado';
+          
+          // Se o existente for arquivado e o atual não, substitui pelo atual (mantém o ativo)
+          if (isExistingArchived && !isCurrentArchived) {
+            duplicatesToRemove.push(existing);
+            uniqueMap.set(key, product);
+          } else {
+            // Caso contrário, mantém o existente e remove o atual (duplicata)
+            duplicatesToRemove.push(product);
+          }
+        } else {
+          uniqueMap.set(key, product);
+        }
+      });
+
+      // Remove duplicatas do banco de dados automaticamente
+      if (duplicatesToRemove.length > 0) {
+        console.log('[ProductsPage] Removendo duplicatas encontradas:', duplicatesToRemove.length);
+        duplicatesToRemove.forEach(async (rem) => {
           try {
             await deleteDoc(doc(db, 'products', String(rem.id)));
-            // also remove from in-memory list
-            const idx = list.findIndex(x => x.id === rem.id);
-            if (idx !== -1) list.splice(idx, 1);
           } catch (err) {
-            console.error('[ProductsPage] failed to remove duplicate product', rem.id, err);
+            console.error('Erro ao remover duplicata:', rem.id, err);
           }
-        }
+        });
       }
-      setProducts(list);
+      
+      setProducts(Array.from(uniqueMap.values()));
       if (isManual) {
         setToastMessage({ type: 'success', message: 'Dados sincronizados com sucesso!' });
       }
@@ -246,7 +271,13 @@ export default function ProductsPage() {
   const handleArchiveProduct = async (productId) => {
     if (!productId) return;
     try {
-      await setDoc(doc(db, 'products', String(productId)), { status: 'Arquivado' }, { merge: true });
+      const docRef = doc(db, 'products', String(productId));
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) {
+        setToastMessage({ type: 'error', message: 'Produto não encontrado.' });
+        return;
+      }
+      await setDoc(docRef, { status: 'Arquivado' }, { merge: true });
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, status: 'Arquivado' } : p));
       setArchiveConfirmId(null);
       setToastMessage({ type: 'success', message: 'Produto arquivado com sucesso!' });
@@ -259,7 +290,13 @@ export default function ProductsPage() {
   const handleRestoreProduct = async (productId) => {
     if (!productId) return;
     try {
-      await setDoc(doc(db, 'products', String(productId)), { status: 'Ativo' }, { merge: true });
+      const docRef = doc(db, 'products', String(productId));
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) {
+        setToastMessage({ type: 'error', message: 'Produto não encontrado.' });
+        return;
+      }
+      await setDoc(docRef, { status: 'Ativo' }, { merge: true });
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, status: 'Ativo' } : p));
       setToastMessage({ type: 'success', message: 'Produto restaurado com sucesso!' });
     } catch (err) {
@@ -456,10 +493,16 @@ export default function ProductsPage() {
               <tr key={product.id} className="border-t">
                 <td className="p-3">
                   <div className="flex items-center gap-3">
-                    <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded" />
+                    {product.image ? (
+                      <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded" />
+                    ) : (
+                      <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-400">
+                        <ImageIcon size={20} />
+                      </div>
+                    )}
                     <div>
-                      <div className="font-medium">{product.name}</div>
-                      <div className="text-xs text-gray-500">{product.sku}</div>
+                      <div className="font-medium">{product.name || <span className="text-red-400 italic">Sem nome</span>}</div>
+                      <div className="text-xs text-gray-500">{product.sku || '-'}</div>
                     </div>
                   </div>
                 </td>
