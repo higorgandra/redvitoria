@@ -226,24 +226,26 @@ export default function ProductsPage() {
   };
 
   const handleArchiveProduct = async (productId) => {
+    if (!productId) return;
     try {
-      await updateDoc(doc(db, 'products', String(productId)), { status: 'Arquivado' });
+      await setDoc(doc(db, 'products', String(productId)), { status: 'Arquivado' }, { merge: true });
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, status: 'Arquivado' } : p));
       setArchiveConfirmId(null);
       setToastMessage({ type: 'success', message: 'Produto arquivado com sucesso!' });
     } catch (err) {
-      console.error('Erro ao arquivar produto:', err);
+      console.error('Erro ao arquivar produto:', err, 'ID:', productId);
       setToastMessage({ type: 'error', message: 'Não foi possível arquivar o produto.' });
     }
   };
 
   const handleRestoreProduct = async (productId) => {
+    if (!productId) return;
     try {
-      await updateDoc(doc(db, 'products', String(productId)), { status: 'Ativo' });
+      await setDoc(doc(db, 'products', String(productId)), { status: 'Ativo' }, { merge: true });
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, status: 'Ativo' } : p));
       setToastMessage({ type: 'success', message: 'Produto restaurado com sucesso!' });
     } catch (err) {
-      console.error('Erro ao restaurar produto:', err);
+      console.error('Erro ao restaurar produto:', err, 'ID:', productId);
       setToastMessage({ type: 'error', message: 'Não foi possível restaurar o produto.' });
     }
   };
