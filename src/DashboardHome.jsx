@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, MessageCircle, Send, RotateCcw } from 'lucide-react';
+import { ShoppingBag, MessageCircle, Send, RotateCcw, TrendingUp, DollarSign, AlertTriangle, Users } from 'lucide-react';
 import { db } from './firebase';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, collection, getDocs } from 'firebase/firestore';
 
 const StatCard = ({ icon, title, value, description }) => (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
@@ -25,6 +25,8 @@ const DashboardHome = () => {
         adCardClicks: 0, // Adiciona a nova métrica
     });
     const [loading, setLoading] = useState(true);
+    const [inventoryStats, setInventoryStats] = useState({ totalValue: 0, lowStock: 0 });
+    const [totalVisits, setTotalVisits] = useState(0);
 
     useEffect(() => {
         const metricsRef = doc(db, 'metrics', 'userInteractions');
@@ -48,6 +50,36 @@ const DashboardHome = () => {
             setLoading(false);
         });
 
+        // Busca estatísticas adicionais (Produtos e Visitas)
+        const fetchAdditionalStats = async () => {
+            try {
+                // 1. Estatísticas de Estoque
+                const productsSnap = await getDocs(collection(db, 'products'));
+                let value = 0;
+                let low = 0;
+                productsSnap.forEach(doc => {
+                    const p = doc.data();
+                    // Filtra apenas produtos ativos para o cálculo financeiro
+                    if (p.status !== 'Arquivado' && p.status !== 'Anúncio') {
+                        const price = parseFloat(p.price || 0);
+                        const stock = parseInt(p.stock || 0);
+                        if (stock > 0) value += price * stock;
+                        if (stock <= 3) low++;
+                    }
+                });
+                setInventoryStats({ totalValue: value, lowStock: low });
+
+                // 2. Estatísticas de Visitas
+                const visitsSnap = await getDocs(collection(db, 'visits'));
+                setTotalVisits(visitsSnap.size);
+
+            } catch (error) {
+                console.error("Erro ao carregar estatísticas extras:", error);
+            }
+        };
+
+        fetchAdditionalStats();
+
         // Limpa o listener quando o componente é desmontado
         return () => unsubscribe();
     }, []);
@@ -69,6 +101,11 @@ const DashboardHome = () => {
         }
     };
 
+    // Cálculo da Taxa de Conversão (Sacola -> WhatsApp)
+    const conversionRate = metrics.addToCartClicks > 0
+        ? ((metrics.whatsappClicks / metrics.addToCartClicks) * 100).toFixed(1)
+        : '0.0';
+
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
@@ -78,7 +115,17 @@ const DashboardHome = () => {
                     Resetar Métricas
                 </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            {/* Novos Cards Estratégicos */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <StatCard icon={<TrendingUp size={24} className="text-green-600" />} title="Taxa de Conversão" value={`${conversionRate}%`} description="De Sacola para WhatsApp" />
+                <StatCard icon={<DollarSign size={24} className="text-blue-600" />} title="Valor em Estoque" value={`R$ ${inventoryStats.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} description="Potencial de venda atual" />
+                <StatCard icon={<AlertTriangle size={24} className="text-yellow-600" />} title="Estoque Baixo" value={inventoryStats.lowStock} description="Produtos com < 3 un." />
+                <StatCard icon={<Users size={24} className="text-purple-600" />} title="Total de Visitas" value={totalVisits} description="Acessos ao site" />
+            </div>
+
+            <h3 className="text-lg font-bold text-gray-700 mb-4">Interações em Tempo Real</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <StatCard icon={<ShoppingBag size={24} className="text-gray-600" />} title="Cliques em 'Adicionar à Sacola'" value={loading ? '...' : metrics.addToCartClicks || 0} description="Total de interações no botão de adicionar produto." />
                 <StatCard icon={<MessageCircle size={24} className="text-gray-600" />} title="Cliques em 'Finalizar no WhatsApp'" value={loading ? '...' : metrics.whatsappClicks || 0} description="Total de interações no botão para finalizar via WhatsApp." />
                 <StatCard icon={<Send size={24} className="text-gray-600" />} title="Cliques no Catálogo (Anúncio)" value={loading ? '...' : metrics.adCardClicks || 0} description="Total de cliques no card de anúncio para o catálogo." />
