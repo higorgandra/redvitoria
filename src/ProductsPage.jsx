@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { PlusCircle, Search, Archive, Edit, MoreVertical, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, X, CheckCircle, AlertCircle, Megaphone, Trash2, ClipboardPaste, RefreshCw, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { PlusCircle, Search, Archive, Edit, MoreVertical, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, X, CheckCircle, AlertCircle, Megaphone, Trash2, ClipboardPaste, RefreshCw, Image as ImageIcon, Link as LinkIcon, TrendingUp, ArrowUpDown } from 'lucide-react';
 import { db } from './firebase';
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
 
@@ -13,7 +13,7 @@ export default function ProductsPage() {
   const [isBrandPopupOpen, setIsBrandPopupOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [newProductData, setNewProductData] = useState({ name: '', image: '', brand: 'boticario', category: 'perfumaria', stock: 0, fullPrice: '', discountPercentage: '', price: '', description: '', slug: '' });
+  const [newProductData, setNewProductData] = useState({ name: '', image: '', brand: 'boticario', category: 'perfumaria', stock: 0, fullPrice: '', discountPercentage: '', price: '', description: '', slug: '', expirationDate: '', costPrice: '', isFeatured: false });
   const [editFormData, setEditFormData] = useState({});
   const [activeDropdownId, setActiveDropdownId] = useState(null);
   const [archiveConfirmId, setArchiveConfirmId] = useState(null);
@@ -21,6 +21,8 @@ export default function ProductsPage() {
   const [toastMessage, setToastMessage] = useState(null);
   const [formErrors, setFormErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const [showFinancialReport, setShowFinancialReport] = useState(false);
+  const [sortOption, setSortOption] = useState('name');
 
   // Ref para rastrear o último campo modificado pelo usuário no formulário
   const lastChangedFieldRef = useRef(null);
@@ -31,6 +33,17 @@ export default function ProductsPage() {
       return () => clearTimeout(timer);
     }
   }, [toastMessage]);
+
+  const getExpirationStatus = (dateString) => {
+    if (!dateString) return null;
+    const today = new Date();
+    const exp = new Date(dateString);
+    const diffTime = exp.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24));
+    if (diffDays < 0) return { label: 'Vencido', color: 'bg-red-100 text-red-800 border-red-200' };
+    if (diffDays <= 30) return { label: 'Vence logo', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+    return null;
+  };
 
   const generateSlug = (text) => {
     if (!text) return '';
@@ -117,8 +130,27 @@ export default function ProductsPage() {
     fetchProducts();
   }, []);
 
+  const financialStats = useMemo(() => {
+    return products.reduce((acc, product) => {
+      if (product.status === 'Anúncio') return acc;
+      const stock = parseInt(product.stock || 0, 10);
+      if (stock <= 0) return acc;
+
+      const price = parseFloat(product.price || 0);
+      const cost = parseFloat(product.costPrice || 0);
+
+      acc.totalStock += stock;
+      acc.totalRevenue += (price * stock);
+      acc.totalCost += (cost * stock);
+      acc.totalProfit += ((price - cost) * stock);
+      
+      return acc;
+    }, { totalStock: 0, totalRevenue: 0, totalCost: 0, totalProfit: 0 });
+  }, [products]);
+
   const handleNewProductChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    const val = type === 'checkbox' ? checked : value;
     lastChangedFieldRef.current = name;
     // Limpa o erro do campo ao ser modificado
     if (formErrors[name]) {
@@ -128,14 +160,15 @@ export default function ProductsPage() {
         return newErrors;
       });
     }
-    setNewProductData(prev => ({ ...prev, [name]: value }));
+    setNewProductData(prev => ({ ...prev, [name]: val }));
   };
 
   const handleEditFormChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    const val = type === 'checkbox' ? checked : value;
     lastChangedFieldRef.current = name;
     // A validação de edição pode ser adicionada aqui de forma similar, se necessário
-    setEditFormData(prev => ({ ...prev, [name]: value }));
+    setEditFormData(prev => ({ ...prev, [name]: val }));
   };
 
   // Efeito para calcular os campos de preço dinamicamente
@@ -263,12 +296,12 @@ export default function ProductsPage() {
 
       let finalId = String(slug || Date.now());
       const status = isAd ? 'Anúncio' : ((isNaN(stock) || stock === 0) ? 'Sem Estoque' : 'Ativo');
-      const dataToSave = { ...newProductData, price: isAd ? 0 : parseFloat(newProductData.price), fullPrice: isAd ? 0 : parseFloat(newProductData.fullPrice), stock: isAd ? 0 : (isNaN(stock) ? 0 : stock), slug, sku: generatedSku, discountPercentage: isAd ? 0 : (parseFloat(newProductData.discountPercentage) || 0), description: newProductData.description || '', status: status, link: isAd ? (newProductData.link || '') : `https://redvitoria.pages.dev/produto/${finalId}`, createdAt: serverTimestamp() };
+      const dataToSave = { ...newProductData, price: isAd ? 0 : parseFloat(newProductData.price), fullPrice: isAd ? 0 : parseFloat(newProductData.fullPrice), stock: isAd ? 0 : (isNaN(stock) ? 0 : stock), slug, sku: generatedSku, discountPercentage: isAd ? 0 : (parseFloat(newProductData.discountPercentage) || 0), description: newProductData.description || '', status: status, link: isAd ? (newProductData.link || '') : `https://redvitoria.pages.dev/produto/${finalId}`, createdAt: serverTimestamp(), expirationDate: newProductData.expirationDate || null, costPrice: parseFloat(newProductData.costPrice) || 0, isFeatured: Boolean(newProductData.isFeatured) };
       await setDoc(doc(db, 'products', finalId), dataToSave);
       console.log('[ProductsPage] added product id=', String(finalId), 'slug=', slug);
       setProducts(prev => [{ id: finalId, ...dataToSave }, ...prev]);
       setIsAddModalOpen(false);
-      setNewProductData({ name: '', image: '', brand: 'boticario', category: 'perfumaria', stock: 0, fullPrice: '', discountPercentage: '', price: '', description: '', slug: '' });
+      setNewProductData({ name: '', image: '', brand: 'boticario', category: 'perfumaria', stock: 0, fullPrice: '', discountPercentage: '', price: '', description: '', slug: '', expirationDate: '', costPrice: '', isFeatured: false });
       setToastMessage({ type: 'success', message: 'Produto criado com sucesso!' });
     } catch (err) {
       console.error('Erro ao adicionar anúncio:', err);
@@ -349,7 +382,7 @@ export default function ProductsPage() {
     const price = product.price || 0;
     let discountPercentage = 0;
     if (fullPrice > 0 && price > 0 && fullPrice > price) discountPercentage = ((fullPrice - price) / fullPrice) * 100;
-    setEditFormData({ ...product, fullPrice, description: product.description || '', slug: product.slug || '', link: product.link || '', category: product.category || 'perfumaria', discountPercentage: discountPercentage > 0 ? discountPercentage.toFixed(0) : '' });
+    setEditFormData({ ...product, fullPrice, description: product.description || '', slug: product.slug || '', link: product.link || '', category: product.category || 'perfumaria', discountPercentage: discountPercentage > 0 ? discountPercentage.toFixed(0) : '', expirationDate: product.expirationDate || '', costPrice: product.costPrice || '', isFeatured: product.isFeatured || false });
   };
 
   const handleUpdateProduct = async (publish = true) => {
@@ -400,6 +433,7 @@ export default function ProductsPage() {
     const price = parseFloat(String(editFormData.price).replace(',', '.'));
     const fullPrice = parseFloat(String(editFormData.fullPrice).replace(',', '.'));
     const discountPercentage = parseFloat(String(editFormData.discountPercentage).replace(',', '.')) || 0;
+    const costPrice = parseFloat(String(editFormData.costPrice).replace(',', '.')) || 0;
 
     if (status !== 'Anúncio' && (isNaN(price) || isNaN(fullPrice))) {
       setToastMessage({ type: 'error', message: 'Por favor, verifique os valores de preço.' });
@@ -416,7 +450,10 @@ export default function ProductsPage() {
       link: status === 'Anúncio' ? (editFormData.link || '') : `https://redvitoria.pages.dev/produto/${newSlug}`, 
       description: editFormData.description || '', 
       status,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
+      expirationDate: editFormData.expirationDate || null,
+      costPrice: isNaN(costPrice) ? 0 : costPrice,
+      isFeatured: Boolean(editFormData.isFeatured)
     };
 
     setIsSaving(true);
@@ -444,6 +481,16 @@ export default function ProductsPage() {
     const nameMatch = (product.name || '').toLowerCase().includes(q);
     const skuMatch = (product.sku || '').toLowerCase().includes(q);
     return nameMatch || skuMatch;
+  }).sort((a, b) => {
+    if (sortOption === 'priceAsc') return a.price - b.price;
+    if (sortOption === 'priceDesc') return b.price - a.price;
+    if (sortOption === 'stockAsc') return (a.stock || 0) - (b.stock || 0);
+    if (sortOption === 'expiration') {
+      if (!a.expirationDate) return 1;
+      if (!b.expirationDate) return -1;
+      return new Date(a.expirationDate) - new Date(b.expirationDate);
+    }
+    return (a.name || '').localeCompare(b.name || '');
   });
 
   const [productsPerPage, setProductsPerPage] = useState(() => (typeof window !== 'undefined' && window.innerWidth >= 768) ? 10 : 6);
@@ -488,6 +535,10 @@ export default function ProductsPage() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Produtos</h1>
         <div className="flex gap-2">
+          <button onClick={() => setShowFinancialReport(!showFinancialReport)} className={`flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg font-semibold shadow-sm transition-colors ${showFinancialReport ? 'bg-gray-100 text-gray-900' : 'bg-white text-gray-700 hover:bg-gray-50'}`} title="Relatório Financeiro">
+            <TrendingUp size={16} />
+            <span className="hidden sm:inline">Relatório</span>
+          </button>
           <button onClick={() => fetchProducts(true)} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold shadow-sm hover:bg-gray-50 transition-colors" title="Sincronizar dados">
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             <span className="hidden sm:inline">Sincronizar</span>
@@ -496,16 +547,52 @@ export default function ProductsPage() {
         </div>
       </div>
 
+      {showFinancialReport && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
+            <p className="text-xs text-gray-500 font-bold uppercase">Total em Estoque</p>
+            <p className="text-2xl font-bold text-gray-800">{financialStats.totalStock}</p>
+            <p className="text-xs text-gray-400">unidades</p>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500">
+            <p className="text-xs text-gray-500 font-bold uppercase">Custo Total</p>
+            <p className="text-2xl font-bold text-gray-800">R$ {financialStats.totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+            <p className="text-xs text-gray-400">Investimento</p>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
+            <p className="text-xs text-gray-500 font-bold uppercase">Venda Total</p>
+            <p className="text-2xl font-bold text-gray-800">R$ {financialStats.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+            <p className="text-xs text-gray-400">Faturamento Potencial</p>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow border-l-4 border-purple-600">
+            <p className="text-xs text-gray-500 font-bold uppercase">Lucro Estimado</p>
+            <p className="text-2xl font-bold text-purple-600">R$ {financialStats.totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+            <p className="text-xs text-gray-400">Margem Projetada</p>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex gap-2 mb-4">
         <button onClick={() => { setView('active'); setCurrentPage(1); }} className={`px-4 py-2 rounded ${view === 'active' ? 'bg-[#8B0000] text-white' : 'bg-gray-100'}`}>Ativos</button>
         <button onClick={() => { setView('archived'); setCurrentPage(1); }} className={`px-4 py-2 rounded ${view === 'archived' ? 'bg-[#8B0000] text-white' : 'bg-gray-100'}`}>Arquivados</button>
       </div>
 
-      <div className="mb-4">
-        <div className="relative max-w-md">
+      <div className="mb-4 flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} className="w-full pl-10 pr-3 py-2 border rounded" placeholder="Buscar por nome ou SKU" />
+        </div>
+        <div className="relative w-full sm:w-64">
+          <ArrowUpDown size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <select value={sortOption} onChange={(e) => setSortOption(e.target.value)} className="w-full pl-10 pr-3 py-2 border rounded appearance-none bg-white cursor-pointer">
+            <option value="name">Ordem Alfabética</option>
+            <option value="priceAsc">Menor Preço</option>
+            <option value="priceDesc">Maior Preço</option>
+            <option value="stockAsc">Menor Estoque</option>
+            <option value="expiration">Validade (Próximos)</option>
+          </select>
+          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
         </div>
       </div>
 
@@ -540,14 +627,23 @@ export default function ProductsPage() {
                       </div>
                     )}
                     <div>
-                      <div className="font-medium">{product.name || <span className="text-red-400 italic">Sem nome</span>}</div>
+                      <div className="font-medium flex items-center gap-2 flex-wrap">
+                        {product.name || <span className="text-red-400 italic">Sem nome</span>}
+                        {(() => {
+                          const status = getExpirationStatus(product.expirationDate);
+                          if (status) return <span className={`text-[10px] px-1.5 py-0.5 rounded border uppercase font-bold ${status.color}`}>{status.label}</span>;
+                        })()}
+                      </div>
                       <div className="text-xs text-gray-500">{product.sku || '-'}</div>
                     </div>
                   </div>
                 </td>
                 <td className="p-3 capitalize">{product.brand}</td>
                 <td className="p-3">R$ {Number(product.price || 0).toFixed(2)}</td>
-                <td className="p-3">{product.stock ?? 0}</td>
+                <td className={`p-3 ${product.stock <= 3 && product.status !== 'Anúncio' ? 'text-red-600 font-bold' : ''}`}>
+                  {product.stock ?? 0}
+                  {product.stock <= 3 && product.status !== 'Anúncio' && <span className="text-xs ml-1 block font-normal">Baixo</span>}
+                </td>
                 <td className="p-3">{product.status}</td>
                 <td className="p-3">
                   <div className="flex gap-2 justify-end">
@@ -698,6 +794,22 @@ export default function ProductsPage() {
                           <label className="block text-sm font-medium mb-1">Estoque</label>
                           <input type="number" name="stock" value={editingProduct ? editFormData.stock : newProductData.stock} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className={`w-full p-2 border rounded ${formErrors.stock ? 'border-red-500' : ''}`} />
                           {formErrors.stock && <p className="text-xs text-red-600 mt-1">{formErrors.stock}</p>}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Data de Validade</label>
+                          <input type="date" name="expirationDate" value={editingProduct ? editFormData.expirationDate : newProductData.expirationDate} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className="w-full p-2 border rounded" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Preço de Custo (R$)</label>
+                          <input type="number" name="costPrice" value={editingProduct ? editFormData.costPrice : newProductData.costPrice} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className="w-full p-2 border rounded" placeholder="Ex: 50.00" />
+                        </div>
+                        <div className="flex items-center pt-6">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="isFeatured" checked={editingProduct ? editFormData.isFeatured : newProductData.isFeatured} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className="w-4 h-4 text-[#8B0000] rounded focus:ring-[#8B0000]" />
+                            <span className="text-sm font-medium">Destaque (Carrossel)</span>
+                          </label>
                         </div>
                       </div>
                       <div>

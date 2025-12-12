@@ -33,14 +33,16 @@ const DashboardHome = () => {
         const unsubscribe = onSnapshot(metricsRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                // Garante que o estado seja atualizado com os valores existentes ou 0
                 setMetrics(prevMetrics => ({
                     ...prevMetrics,
                     ...data
                 }));
             } else {
-                console.log("Documento de métricas ainda não existe.");
+                setMetrics({ addToCartClicks: 0, whatsappClicks: 0, adCardClicks: 0 });
             }
+            setLoading(false);
+        }, (error) => {
+            console.error("Erro ao carregar métricas:", error);
             setLoading(false);
         });
 

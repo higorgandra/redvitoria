@@ -2,7 +2,8 @@ import React, { useState, useRef } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Send, Share2, Check } from 'lucide-react';
-import { incrementMetric } from './firebase'; // 1. Importar a função
+import { db } from './firebase';
+import { doc, setDoc, increment } from 'firebase/firestore';
 
 const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted, currentPage, showShareIcon }) => {
   const [hasCopied, setHasCopied] = useState(false);
@@ -37,15 +38,25 @@ const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted, c
   // Verifica se o produto está sem estoque (além do status, verifica a quantidade)
   const isOutOfStock = !isAd && product.stock <= 0;
 
+  // Função auxiliar para registrar métricas com segurança
+  const registerMetric = async (metricName) => {
+    try {
+      const metricsRef = doc(db, 'metrics', 'userInteractions');
+      await setDoc(metricsRef, { [metricName]: increment(1) }, { merge: true });
+    } catch (error) {
+      console.error("Erro ao registrar métrica:", error);
+    }
+  };
+
   // 2. Criar uma função que chama as duas ações
   const handleAddToCartClick = () => {
     onAddToCart(product); // Ação original: adiciona ao estado do carrinho
-    incrementMetric('addToCartClicks'); // Nova ação: registra o clique no Firebase
+    registerMetric('addToCartClicks'); // Nova ação: registra o clique no Firebase
   };
 
   // Função para registrar o clique no card de anúncio
   const handleAdClick = () => {
-    incrementMetric('adCardClicks');
+    registerMetric('adCardClicks');
   };
 
   // Função para copiar o link e alterar o estado do botão

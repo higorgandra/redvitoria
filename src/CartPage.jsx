@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Trash2, Plus, Minus, ArrowLeft } from 'lucide-react';
-import { incrementMetric } from './firebase'; // 1. Importar a função
+import { db } from './firebase';
+import { doc, setDoc, increment } from 'firebase/firestore';
 
 // Componente para o ícone personalizado do WhatsApp
 const WhatsAppIcon = ({ size = 24 }) => (
@@ -33,6 +34,16 @@ const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
   const total = subtotal; // Assumindo frete grátis por enquanto
   const phone = "5571992293834"; // Número de telefone centralizado
 
+  // Função auxiliar para registrar métricas com segurança
+  const registerMetric = async (metricName) => {
+    try {
+      const metricsRef = doc(db, 'metrics', 'userInteractions');
+      await setDoc(metricsRef, { [metricName]: increment(1) }, { merge: true });
+    } catch (error) {
+      console.error("Erro ao registrar métrica:", error);
+    }
+  };
+
   const checkoutWhatsApp = () => {
     if (cart.length === 0) {
       alert("Seu carrinho está vazio!");
@@ -48,7 +59,7 @@ const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
 
     // 2. Registrar o clique no Firebase
-    incrementMetric('whatsappClicks');
+    registerMetric('whatsappClicks');
   };
 
   const formatPrice = (price) => {
