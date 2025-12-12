@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PlusCircle, Search, Archive, Edit, MoreVertical, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, X, CheckCircle, AlertCircle, Megaphone, Trash2, ClipboardPaste, RefreshCw, Image as ImageIcon } from 'lucide-react';
+import { PlusCircle, Search, Archive, Edit, MoreVertical, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, X, CheckCircle, AlertCircle, Megaphone, Trash2, ClipboardPaste, RefreshCw, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { db } from './firebase';
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
 
@@ -212,7 +212,8 @@ export default function ProductsPage() {
     if (!newProductData.name.trim()) errors.name = 'O nome do produto é obrigatório.';
 
     if (isAd) {
-      if (!newProductData.link?.trim()) errors.link = 'O link do anúncio é obrigatório.';
+      if (!newProductData.image?.trim()) errors.image = 'O link da imagem do anúncio é obrigatório.';
+      if (!newProductData.link?.trim()) errors.link = 'O link de destino do anúncio é obrigatório.';
     } else {
       if (!newProductData.image.trim()) errors.image = 'O link da imagem é obrigatório.';
       if (!newProductData.fullPrice || parseFloat(String(newProductData.fullPrice).replace(',', '.')) <= 0) errors.fullPrice = 'O "Valor Cheio" é obrigatório.';
@@ -311,6 +312,15 @@ export default function ProductsPage() {
     } catch (err) {
       console.error('Erro ao restaurar produto:', err, 'ID:', productId);
       setToastMessage({ type: 'error', message: 'Não foi possível restaurar o produto.' });
+    }
+  };
+
+  const handleCopyLink = (link) => {
+    if (link) {
+      navigator.clipboard.writeText(link);
+      setToastMessage({ type: 'success', message: 'Link copiado!' });
+    } else {
+      setToastMessage({ type: 'error', message: 'Link não disponível.' });
     }
   };
 
@@ -548,6 +558,7 @@ export default function ProductsPage() {
                       </>
                     ) : (
                       <>
+                        <button onClick={() => handleCopyLink(product.link)} className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded border"><LinkIcon size={16} /> Link</button>
                         <button onClick={() => handleEditClick(product)} className="flex items-center gap-2 px-3 py-1 bg-yellow-50 rounded border"><Edit size={16} /> Editar</button>
                         <button onClick={() => { setArchiveConfirmId(product.id); }} className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded border"><Archive size={16} /> Arquivar</button>
                         <button onClick={() => handleDeleteClick(product.id)} className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-700 rounded border"><Trash2 size={16} /> Excluir</button>
@@ -633,25 +644,38 @@ export default function ProductsPage() {
                       </select>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">{isAdForm ? 'Link do Anúncio' : 'Link da Imagem'}</label>
-                    <div className="flex gap-2">
-                      <input type="text" name={isAdForm ? 'link' : 'image'} value={editingProduct ? (isAdForm ? editFormData.link : editFormData.image) : (isAdForm ? newProductData.link : newProductData.image)} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className={`w-full p-2 border rounded ${formErrors.image || formErrors.link ? 'border-red-500' : ''}`} />
-                      {!isAdForm && <button onClick={() => handlePasteFromClipboard(editingProduct ? 'edit' : 'new')} className="p-2 border rounded" title="Colar da área de transferência"><ClipboardPaste size={16} /></button>}
-                    </div>
-                    {(formErrors.image || formErrors.link) && <p className="text-xs text-red-600 mt-1">{formErrors.image || formErrors.link}</p>}
-                    {/* Image Preview */}
-                    {!isAdForm && (editingProduct ? editFormData.image : newProductData.image) && (
-                      <div className="mt-2">
-                        <img 
-                          src={editingProduct ? editFormData.image : newProductData.image} 
-                          alt="Preview" 
-                          className="w-20 h-20 object-cover rounded border bg-gray-50" 
-                          onError={(e) => e.target.style.display = 'none'} 
-                        />
+                  {isAdForm ? (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Link da Imagem do Anúncio</label>
+                        <div className="flex gap-2">
+                          <input type="text" name="image" value={currentData.image || ''} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className={`w-full p-2 border rounded ${formErrors.image ? 'border-red-500' : ''}`} />
+                          <button onClick={() => handlePasteFromClipboard(editingProduct ? 'edit' : 'new')} className="p-2 border rounded" title="Colar da área de transferência"><ClipboardPaste size={16} /></button>
+                        </div>
+                        {formErrors.image && <p className="text-xs text-red-600 mt-1">{formErrors.image}</p>}
                       </div>
-                    )}
-                  </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Link de Destino do Anúncio</label>
+                        <input type="text" name="link" value={currentData.link || ''} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className={`w-full p-2 border rounded ${formErrors.link ? 'border-red-500' : ''}`} />
+                        {formErrors.link && <p className="text-xs text-red-600 mt-1">{formErrors.link}</p>}
+                      </div>
+                    </>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Link da Imagem</label>
+                      <div className="flex gap-2">
+                        <input type="text" name="image" value={currentData.image || ''} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className={`w-full p-2 border rounded ${formErrors.image ? 'border-red-500' : ''}`} />
+                        <button onClick={() => handlePasteFromClipboard(editingProduct ? 'edit' : 'new')} className="p-2 border rounded" title="Colar da área de transferência"><ClipboardPaste size={16} /></button>
+                      </div>
+                      {formErrors.image && <p className="text-xs text-red-600 mt-1">{formErrors.image}</p>}
+                    </div>
+                  )}
+                  {/* Image Preview */}
+                  {currentData.image && (
+                    <div className="mt-2">
+                      <img src={currentData.image} alt="Preview" className="w-20 h-20 object-cover rounded border bg-gray-50" onError={(e) => e.target.style.display = 'none'} />
+                    </div>
+                  )}
                   {!isAdForm && (
                     <>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
