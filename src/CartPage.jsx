@@ -40,7 +40,11 @@ const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
       const metricsRef = doc(db, 'metrics', 'userInteractions');
       await setDoc(metricsRef, { [metricName]: increment(1) }, { merge: true });
     } catch (error) {
-      console.error("Erro ao registrar métrica:", error);
+      if (error.code === 'permission-denied') {
+        console.warn("Métrica não registrada por falta de permissão. Verifique as Regras do Firestore.");
+      } else {
+        console.error("Erro ao registrar métrica:", error);
+      }
     }
   };
 
