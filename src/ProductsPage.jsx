@@ -32,6 +32,11 @@ export default function ProductsPage() {
     }
   }, [toastMessage]);
 
+  const generateSlug = (text) => {
+    if (!text) return '';
+    return text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+  };
+
   const fetchProducts = async (isManual = false) => {
     setLoading(true);
     try {
@@ -53,7 +58,7 @@ export default function ProductsPage() {
 
       list.forEach(product => {
         // Chave única baseada no Slug ou Nome (normalizado)
-        const key = (product.slug || product.name || '').toLowerCase().trim();
+        const key = (product.slug || generateSlug(product.name)).toLowerCase().trim();
         if (!key) return;
 
         if (uniqueMap.has(key)) {
@@ -102,11 +107,6 @@ export default function ProductsPage() {
   useEffect(() => {
     fetchProducts();
   }, []);
-
-  const generateSlug = (text) => {
-    if (!text) return '';
-    return text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
-  };
 
   const handleNewProductChange = (e) => {
     const { name, value } = e.target;
