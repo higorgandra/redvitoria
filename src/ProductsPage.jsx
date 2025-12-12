@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PlusCircle, Search, Archive, Edit, MoreVertical, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, X, CheckCircle, AlertCircle, Megaphone, Trash2, ClipboardPaste } from 'lucide-react';
+import { PlusCircle, Search, Archive, Edit, MoreVertical, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, X, CheckCircle, AlertCircle, Megaphone, Trash2, ClipboardPaste, RefreshCw } from 'lucide-react';
 import { db } from './firebase';
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
@@ -32,47 +32,50 @@ export default function ProductsPage() {
     }
   }, [toastMessage]);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      setLoading(true);
-      try {
-        const snap = await getDocs(collection(db, 'products'));
-        const list = [];
-        snap.forEach(d => {
-          const data = d.data() || {};
-          const priceAsNumber = typeof data.price === 'string' ? parseFloat(String(data.price).replace('R$', '').replace('.', '').replace(',', '.').trim()) : data.price;
-          list.push({ id: d.id, ...data, price: isNaN(priceAsNumber) ? 0 : priceAsNumber });
-        });
-        // Before setting state, detect and remove known duplicate product entries
-        // Target product name provided by user
-        const duplicateTargetName = 'Body Splash Luna Radiante Desodorante Colônia Feminino Natura 200ml';
-        const duplicates = list.filter(p => p.name === duplicateTargetName);
-        if (duplicates.length > 1) {
-          // Keep one record: prefer non-archived, otherwise the first
-          const keep = duplicates.find(p => p.status !== 'Arquivado') || duplicates[0];
-          const toRemove = duplicates.filter(p => p.id !== keep.id);
-          console.log('[ProductsPage] Cleaning up duplicate products, keeping id=', keep.id, 'removing=', toRemove.map(t => t.id));
-          for (const rem of toRemove) {
-            try {
-              await deleteDoc(doc(db, 'products', String(rem.id)));
-              // also remove from in-memory list
-              const idx = list.findIndex(x => x.id === rem.id);
-              if (idx !== -1) list.splice(idx, 1);
-            } catch (err) {
-              console.error('[ProductsPage] failed to remove duplicate product', rem.id, err);
-            }
+  const fetchProducts = async (isManual = false) => {
+    setLoading(true);
+    try {
+      const snap = await getDocs(collection(db, 'products'));
+      const list = [];
+      snap.forEach(d => {
+        const data = d.data() || {};
+        const priceAsNumber = typeof data.price === 'string' ? parseFloat(String(data.price).replace('R$', '').replace('.', '').replace(',', '.').trim()) : data.price;
+        list.push({ id: d.id, ...data, price: isNaN(priceAsNumber) ? 0 : priceAsNumber });
+      });
+      // Before setting state, detect and remove known duplicate product entries
+      // Target product name provided by user
+      const duplicateTargetName = 'Body Splash Luna Radiante Desodorante Colônia Feminino Natura 200ml';
+      const duplicates = list.filter(p => p.name === duplicateTargetName);
+      if (duplicates.length > 1) {
+        // Keep one record: prefer non-archived, otherwise the first
+        const keep = duplicates.find(p => p.status !== 'Arquivado') || duplicates[0];
+        const toRemove = duplicates.filter(p => p.id !== keep.id);
+        console.log('[ProductsPage] Cleaning up duplicate products, keeping id=', keep.id, 'removing=', toRemove.map(t => t.id));
+        for (const rem of toRemove) {
+          try {
+            await deleteDoc(doc(db, 'products', String(rem.id)));
+            // also remove from in-memory list
+            const idx = list.findIndex(x => x.id === rem.id);
+            if (idx !== -1) list.splice(idx, 1);
+          } catch (err) {
+            console.error('[ProductsPage] failed to remove duplicate product', rem.id, err);
           }
         }
-        if (mounted) setProducts(list);
-      } catch (err) {
-        console.error('Erro ao buscar produtos:', err);
-        setToastMessage({ type: 'error', message: 'Não foi possível carregar os produtos.' });
-      } finally {
-        if (mounted) setLoading(false);
       }
-    })();
-    return () => { mounted = false; };
+      setProducts(list);
+      if (isManual) {
+        setToastMessage({ type: 'success', message: 'Dados sincronizados com sucesso!' });
+      }
+    } catch (err) {
+      console.error('Erro ao buscar produtos:', err);
+      setToastMessage({ type: 'error', message: 'Não foi possível carregar os produtos.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
   }, []);
 
   const generateSlug = (text) => {
@@ -184,6 +187,10 @@ export default function ProductsPage() {
       if (parseInt(newProductData.stock, 10) <= 0) errors.stock = 'O estoque deve ser maior que zero.';
     }
 
+    if (newProductData.slug && /[^a-z0-9\-]/.test(newProductData.slug.toLowerCase())) {
+      errors.slug = 'O Slug deve conter apenas letras, números e hífens (sem espaços ou caracteres especiais).';
+    }
+
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       setToastMessage({ type: 'error', message: 'Por favor, preencha os campos obrigatórios.' });
@@ -205,10 +212,21 @@ export default function ProductsPage() {
       const generatedSku = `${brandPrefix}-${uniqueNumber}`;
       const stock = parseInt(newProductData.stock, 10);
       const slug = newProductData.slug ? generateSlug(newProductData.slug) : generateSlug(newProductData.name);
+      
+      if (slug) {
+        const q = query(collection(db, 'products'), where('slug', '==', slug));
+        const querySnapshot = await getDocs(q);
+        const docRef = doc(db, 'products', slug);
+        const docSnap = await getDoc(docRef);
+
+        if (!querySnapshot.empty || docSnap.exists()) {
+          setToastMessage({ type: 'error', message: 'Este Slug já está em uso. Por favor, altere o nome ou o slug.' });
+          setIsSaving(false);
+          return;
+        }
+      }
+
       let finalId = String(slug || Date.now());
-      const newDocRef = doc(db, 'products', finalId);
-      const existing = await getDoc(newDocRef);
-      if (existing.exists()) finalId = `${finalId}-${Date.now().toString().slice(-4)}`;
       const status = isAd ? 'Anúncio' : ((isNaN(stock) || stock === 0) ? 'Sem Estoque' : 'Ativo');
       const dataToSave = { ...newProductData, price: isAd ? 0 : parseFloat(newProductData.price), fullPrice: isAd ? 0 : parseFloat(newProductData.fullPrice), stock: isAd ? 0 : (isNaN(stock) ? 0 : stock), slug, sku: generatedSku, discountPercentage: isAd ? 0 : (parseFloat(newProductData.discountPercentage) || 0), description: newProductData.description || '', status: status, link: isAd ? (newProductData.link || '') : `https://redvitoria.pages.dev/produto/${finalId}`, createdAt: serverTimestamp() };
       await setDoc(doc(db, 'products', finalId), dataToSave);
@@ -284,6 +302,11 @@ export default function ProductsPage() {
     const stock = parseInt(editFormData.stock, 10);
     let status = editFormData.status;
 
+    if (editFormData.slug && /[^a-z0-9\-]/.test(editFormData.slug.toLowerCase())) {
+      setToastMessage({ type: 'error', message: 'O Slug deve conter apenas letras, números e hífens.' });
+      return;
+    }
+
     if (status !== 'Anúncio' && (isNaN(stock) || stock < 0)) {
       setToastMessage({ type: 'error', message: 'O estoque não pode ser negativo.' });
       return;
@@ -295,6 +318,24 @@ export default function ProductsPage() {
     }
     const newSlug = editFormData.slug ? generateSlug(editFormData.slug) : generateSlug(editFormData.name);
     
+    // Verifica duplicidade de Slug na edição
+    if (newSlug && newSlug !== editingProduct.slug) {
+      setIsSaving(true);
+      const q = query(collection(db, 'products'), where('slug', '==', newSlug));
+      const querySnapshot = await getDocs(q);
+      const duplicateSlug = querySnapshot.docs.some(d => d.id !== productId);
+      
+      const docRef = doc(db, 'products', newSlug);
+      const docSnap = await getDoc(docRef);
+      const duplicateId = docSnap.exists() && docSnap.id !== productId;
+
+      if (duplicateSlug || duplicateId) {
+        setToastMessage({ type: 'error', message: 'Este Slug já está em uso por outro produto.' });
+        setIsSaving(false);
+        return;
+      }
+    }
+
     const price = parseFloat(String(editFormData.price).replace(',', '.'));
     const fullPrice = parseFloat(String(editFormData.fullPrice).replace(',', '.'));
     const discountPercentage = parseFloat(String(editFormData.discountPercentage).replace(',', '.')) || 0;
@@ -371,6 +412,10 @@ export default function ProductsPage() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Produtos</h1>
         <div className="flex gap-2">
+          <button onClick={() => fetchProducts(true)} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold shadow-sm hover:bg-gray-50 transition-colors" title="Sincronizar dados">
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            <span className="hidden sm:inline">Sincronizar</span>
+          </button>
           <button onClick={() => { lastChangedFieldRef.current = null; setIsAddModalOpen(true); }} className="flex items-center gap-2 px-4 py-2 bg-[#8B0000] text-white rounded-lg font-semibold shadow-sm hover:bg-[#650000] transition-colors"><PlusCircle size={16} /> Novo Produto</button>
         </div>
       </div>
@@ -550,7 +595,8 @@ export default function ProductsPage() {
                   )}
                   <div>
                     <label className="block text-sm font-medium mb-1">Slug (URL amigável)</label>
-                    <input type="text" name="slug" value={editingProduct ? editFormData.slug : newProductData.slug} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className="w-full p-2 border rounded" placeholder="Deixe em branco para gerar do nome" />
+                    <input type="text" name="slug" value={editingProduct ? editFormData.slug : newProductData.slug} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className={`w-full p-2 border rounded ${formErrors.slug ? 'border-red-500' : ''}`} placeholder="Deixe em branco para gerar do nome" />
+                    {formErrors.slug && <p className="text-xs text-red-600 mt-1">{formErrors.slug}</p>}
                     <div className="mt-2">
                       <p className="text-xs font-medium text-gray-500">Link Final:</p>
                       <p className="text-xs text-blue-600 bg-gray-50 p-2 rounded break-all">
