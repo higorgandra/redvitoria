@@ -13,7 +13,7 @@ export default function ProductsPage() {
   const [isBrandPopupOpen, setIsBrandPopupOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [newProductData, setNewProductData] = useState({ name: '', image: '', brand: 'boticario', stock: 0, fullPrice: '', discountPercentage: '', price: '', description: '', slug: '' });
+  const [newProductData, setNewProductData] = useState({ name: '', image: '', brand: 'boticario', category: 'perfumaria', stock: 0, fullPrice: '', discountPercentage: '', price: '', description: '', slug: '' });
   const [editFormData, setEditFormData] = useState({});
   const [activeDropdownId, setActiveDropdownId] = useState(null);
   const [archiveConfirmId, setArchiveConfirmId] = useState(null);
@@ -34,7 +34,16 @@ export default function ProductsPage() {
 
   const generateSlug = (text) => {
     if (!text) return '';
-    return text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+    return text
+      .toString()
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove acentos
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
   };
 
   const fetchProducts = async (isManual = false) => {
@@ -258,7 +267,7 @@ export default function ProductsPage() {
       console.log('[ProductsPage] added product id=', String(finalId), 'slug=', slug);
       setProducts(prev => [{ id: finalId, ...dataToSave }, ...prev]);
       setIsAddModalOpen(false);
-      setNewProductData({ name: '', image: '', brand: 'boticario', stock: 0, fullPrice: '', discountPercentage: '', price: '', description: '', slug: '' });
+      setNewProductData({ name: '', image: '', brand: 'boticario', category: 'perfumaria', stock: 0, fullPrice: '', discountPercentage: '', price: '', description: '', slug: '' });
       setToastMessage({ type: 'success', message: 'Produto criado com sucesso!' });
     } catch (err) {
       console.error('Erro ao adicionar anúncio:', err);
@@ -330,7 +339,7 @@ export default function ProductsPage() {
     const price = product.price || 0;
     let discountPercentage = 0;
     if (fullPrice > 0 && price > 0 && fullPrice > price) discountPercentage = ((fullPrice - price) / fullPrice) * 100;
-    setEditFormData({ ...product, fullPrice, description: product.description || '', slug: product.slug || '', link: product.link || '', discountPercentage: discountPercentage > 0 ? discountPercentage.toFixed(0) : '' });
+    setEditFormData({ ...product, fullPrice, description: product.description || '', slug: product.slug || '', link: product.link || '', category: product.category || 'perfumaria', discountPercentage: discountPercentage > 0 ? discountPercentage.toFixed(0) : '' });
   };
 
   const handleUpdateProduct = async (publish = true) => {
@@ -350,8 +359,13 @@ export default function ProductsPage() {
     }
 
     if (status !== 'Anúncio') {
-      if (publish) status = stock > 0 ? 'Ativo' : 'Sem Estoque';
-      else if (stock === 0 && status !== 'Arquivado') status = 'Sem Estoque';
+      // Se o produto já estiver Arquivado, mantém o status para evitar ativação acidental ao editar
+      if (status === 'Arquivado') {
+        // Mantém 'Arquivado'
+      } else {
+        // Recalcula status baseado no estoque apenas se não estiver arquivado
+        status = stock > 0 ? 'Ativo' : 'Sem Estoque';
+      }
     }
     const newSlug = editFormData.slug ? generateSlug(editFormData.slug) : generateSlug(editFormData.name);
     
@@ -391,7 +405,8 @@ export default function ProductsPage() {
       discountPercentage, 
       link: status === 'Anúncio' ? (editFormData.link || '') : `https://redvitoria.pages.dev/produto/${newSlug}`, 
       description: editFormData.description || '', 
-      status 
+      status,
+      updatedAt: serverTimestamp()
     };
 
     setIsSaving(true);
@@ -442,6 +457,20 @@ export default function ProductsPage() {
     { value: 'quem-disse-berenice', label: 'Quem disse, Berenice?' },
     { value: 'loccitane-au-bresil', label: "L'occitane Au Brésil" }, { value: 'oui-paris', label: 'O.U.i Paris' },
     { value: 'anuncio', label: 'Anúncio (Card Especial)' }
+  ];
+
+  const categories = [
+    { value: 'promocoes', label: 'Promoções' },
+    { value: 'presentes', label: 'Presentes' },
+    { value: 'perfumaria', label: 'Perfumaria' },
+    { value: 'corpo-e-banho', label: 'Corpo e Banho' },
+    { value: 'cabelos', label: 'Cabelos' },
+    { value: 'maquiagem', label: 'Maquiagem' },
+    { value: 'rosto', label: 'Rosto' },
+    { value: 'casa', label: 'Casa' },
+    { value: 'infantil', label: 'Infantil' },
+    { value: 'homens', label: 'Homens' },
+    { value: 'acessorios', label: 'Acessórios' }
   ];
 
   return (
@@ -585,16 +614,22 @@ export default function ProductsPage() {
 
                 return <>
                   {/* Form Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div className="md:col-span-6">
                       <label className="block text-sm font-medium mb-1">Nome do Produto</label>
                       <input type="text" name="name" value={editingProduct ? editFormData.name : newProductData.name} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className={`w-full p-2 border rounded ${formErrors.name ? 'border-red-500' : ''}`} />
                       {formErrors.name && <p className="text-xs text-red-600 mt-1">{formErrors.name}</p>}
                     </div>
-                    <div>
+                    <div className="md:col-span-3">
                       <label className="block text-sm font-medium mb-1">Marca</label>
                       <select name="brand" value={editingProduct ? editFormData.brand : newProductData.brand} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className="w-full p-2 border rounded bg-white">
                         {brands.filter(b => b.value !== 'all').map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="block text-sm font-medium mb-1">Categoria</label>
+                      <select name="category" value={editingProduct ? editFormData.category : newProductData.category} onChange={editingProduct ? handleEditFormChange : handleNewProductChange} className="w-full p-2 border rounded bg-white">
+                        {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                       </select>
                     </div>
                   </div>
@@ -605,6 +640,17 @@ export default function ProductsPage() {
                       {!isAdForm && <button onClick={() => handlePasteFromClipboard(editingProduct ? 'edit' : 'new')} className="p-2 border rounded" title="Colar da área de transferência"><ClipboardPaste size={16} /></button>}
                     </div>
                     {(formErrors.image || formErrors.link) && <p className="text-xs text-red-600 mt-1">{formErrors.image || formErrors.link}</p>}
+                    {/* Image Preview */}
+                    {!isAdForm && (editingProduct ? editFormData.image : newProductData.image) && (
+                      <div className="mt-2">
+                        <img 
+                          src={editingProduct ? editFormData.image : newProductData.image} 
+                          alt="Preview" 
+                          className="w-20 h-20 object-cover rounded border bg-gray-50" 
+                          onError={(e) => e.target.style.display = 'none'} 
+                        />
+                      </div>
+                    )}
                   </div>
                   {!isAdForm && (
                     <>
