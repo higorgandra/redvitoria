@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, MessageCircle, Send, RotateCcw, TrendingUp, DollarSign, AlertTriangle, Users } from 'lucide-react';
 import { db } from './firebase';
-import { doc, onSnapshot, setDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, collection, getDocs, getCountFromServer, writeBatch } from 'firebase/firestore';
 
 const StatCard = ({ icon, title, value, description }) => (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
@@ -70,9 +70,9 @@ const DashboardHome = () => {
                 setInventoryStats({ totalValue: value, lowStock: low });
 
                 // 2. Estatísticas de Visitas
-                const visitsSnap = await getDocs(collection(db, 'visits'));
-                setTotalVisits(visitsSnap.size);
-
+                const visitsColl = collection(db, 'visits');
+                const visitsSnapshot = await getCountFromServer(visitsColl);
+                setTotalVisits(visitsSnapshot.data().count);
             } catch (error) {
                 console.error("Erro ao carregar estatísticas extras:", error);
             }
@@ -86,17 +86,36 @@ const DashboardHome = () => {
 
     const handleResetMetrics = async () => {
         if (window.confirm("Tem certeza que deseja ZERAR todas as métricas? Essa ação não pode ser desfeita e é ideal para início de mês/campanha.")) {
+            setLoading(true);
             try {
+                // 1. Resetar contadores de cliques
                 const metricsRef = doc(db, 'metrics', 'userInteractions');
                 await setDoc(metricsRef, {
                     addToCartClicks: 0,
                     whatsappClicks: 0,
                     adCardClicks: 0
                 });
-                // O onSnapshot atualizará o estado automaticamente
+
+                // 2. Resetar coleção de visitas (deletar todos os documentos)
+                const visitsColl = collection(db, 'visits');
+                const visitsSnapshot = await getDocs(visitsColl);
+                
+                // Deletar em lote (batch)
+                const batch = writeBatch(db);
+                visitsSnapshot.docs.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+
+                setTotalVisits(0); // Atualiza o estado local imediatamente
+                sessionStorage.removeItem('visit_recorded'); // Permite que o admin registre uma nova visita ao testar
+                
+                alert("Métricas resetadas com sucesso!");
             } catch (error) {
                 console.error("Erro ao resetar métricas:", error);
                 alert("Erro ao resetar métricas. Verifique o console.");
+            } finally {
+                setLoading(false);
             }
         }
     };

@@ -10,6 +10,8 @@ import CartPage from './CartPage.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 import SocialPage from './SocialPage.jsx'; // Importar a nova página
 import { AuthProvider } from './AuthContext.jsx';
+import { db } from './firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const ScrollToTop = () => {
   const { pathname, state } = useLocation();
@@ -25,6 +27,26 @@ const ScrollToTop = () => {
 
 const App = () => {
   const [cart, setCart] = useState([]);
+
+  // Efeito para registrar visitas (Contador de Visitas)
+  useEffect(() => {
+    const recordVisit = async () => {
+      // Verifica se já visitou nesta sessão (evita contar F5 como nova visita)
+      const hasVisited = sessionStorage.getItem('visit_recorded');
+      if (!hasVisited) {
+        try {
+          await addDoc(collection(db, 'visits'), {
+            timestamp: serverTimestamp(),
+            userAgent: navigator.userAgent // Salva info do navegador (útil para saber se é mobile/desktop)
+          });
+          sessionStorage.setItem('visit_recorded', 'true');
+        } catch (error) {
+          console.error("Erro ao registrar visita:", error);
+        }
+      }
+    };
+    recordVisit();
+  }, []);
 
   // Efeito para adicionar o Schema.org (JSON-LD) para SEO local
   useEffect(() => {
