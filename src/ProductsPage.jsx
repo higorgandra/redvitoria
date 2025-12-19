@@ -573,9 +573,19 @@ export default function ProductsPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => { setView('active'); setCurrentPage(1); }} className={`px-4 py-2 rounded ${view === 'active' ? 'bg-[#8B0000] text-white' : 'bg-gray-100'}`}>Ativos</button>
-        <button onClick={() => { setView('archived'); setCurrentPage(1); }} className={`px-4 py-2 rounded ${view === 'archived' ? 'bg-[#8B0000] text-white' : 'bg-gray-100'}`}>Arquivados</button>
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+        <div className="flex gap-2 w-full sm:w-auto">
+          <button onClick={() => { setView('active'); setCurrentPage(1); }} className={`flex-1 sm:flex-none px-4 py-2 rounded ${view === 'active' ? 'bg-[#8B0000] text-white' : 'bg-gray-100'}`}>Ativos</button>
+          <button onClick={() => { setView('archived'); setCurrentPage(1); }} className={`flex-1 sm:flex-none px-4 py-2 rounded ${view === 'archived' ? 'bg-[#8B0000] text-white' : 'bg-gray-100'}`}>Arquivados</button>
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
+          <span className="text-sm text-gray-600 mr-2 hidden md:inline">
+            {filteredProducts.length === 0 ? 0 : indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, filteredProducts.length)} de {filteredProducts.length}
+          </span>
+          <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-1 border rounded bg-white hover:bg-gray-50 disabled:opacity-50">Anterior</button>
+          <span className="text-sm font-medium">{currentPage} / {totalPages}</span>
+          <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-3 py-1 border rounded bg-white hover:bg-gray-50 disabled:opacity-50">Próxima</button>
+        </div>
       </div>
 
       <div className="mb-4 flex flex-col sm:flex-row gap-4">
@@ -668,14 +678,6 @@ export default function ProductsPage() {
         </table>
       </div>
 
-      <div className="flex items-center justify-between mt-4">
-        <div className="text-sm text-gray-600">Mostrando {filteredProducts.length === 0 ? 0 : indexOfFirstProduct + 1} - {Math.min(indexOfLastProduct, filteredProducts.length)} de {filteredProducts.length}</div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-1 border rounded">Anterior</button>
-          <span className="text-sm">{currentPage} / {totalPages}</span>
-          <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-3 py-1 border rounded">Próxima</button>
-        </div>
-      </div>
       {/* Delete confirmation modal */}
       {deleteConfirmId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
