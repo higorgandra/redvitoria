@@ -130,8 +130,33 @@ export default function ProductsPage() {
     fetchProducts();
   }, []);
 
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      // Lógica de visualização: 'ativos' mostra tudo que não está arquivado (incluindo o anúncio). 'arquivados' mostra apenas os arquivados.
+      const matchesView = view === 'active' ? product.status !== 'Arquivado' : product.status === 'Arquivado';
+      if (!matchesView) return false;
+      const matchesBrand = brandFilter === 'all' || product.brand === brandFilter;
+      if (!matchesBrand) return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const nameMatch = (product.name || '').toLowerCase().includes(q);
+      const skuMatch = (product.sku || '').toLowerCase().includes(q);
+      return nameMatch || skuMatch;
+    }).sort((a, b) => {
+      if (sortOption === 'priceAsc') return a.price - b.price;
+      if (sortOption === 'priceDesc') return b.price - a.price;
+      if (sortOption === 'stockAsc') return (a.stock || 0) - (b.stock || 0);
+      if (sortOption === 'expiration') {
+        if (!a.expirationDate) return 1;
+        if (!b.expirationDate) return -1;
+        return new Date(a.expirationDate) - new Date(b.expirationDate);
+      }
+      return (a.name || '').localeCompare(b.name || '');
+    });
+  }, [products, view, brandFilter, searchQuery, sortOption]);
+
   const financialStats = useMemo(() => {
-    return products.reduce((acc, product) => {
+    return filteredProducts.reduce((acc, product) => {
       if (product.status === 'Anúncio') return acc;
       const stock = parseInt(product.stock || 0, 10);
       if (stock <= 0) return acc;
@@ -146,7 +171,7 @@ export default function ProductsPage() {
       
       return acc;
     }, { totalStock: 0, totalRevenue: 0, totalCost: 0, totalProfit: 0 });
-  }, [products]);
+  }, [filteredProducts]);
 
   const handleNewProductChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -470,29 +495,6 @@ export default function ProductsPage() {
     }
   };
 
-  const filteredProducts = products.filter(product => {
-    // Lógica de visualização: 'ativos' mostra tudo que não está arquivado (incluindo o anúncio). 'arquivados' mostra apenas os arquivados.
-    const matchesView = view === 'active' ? product.status !== 'Arquivado' : product.status === 'Arquivado';
-    if (!matchesView) return false;
-    const matchesBrand = brandFilter === 'all' || product.brand === brandFilter;
-    if (!matchesBrand) return false;
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    const nameMatch = (product.name || '').toLowerCase().includes(q);
-    const skuMatch = (product.sku || '').toLowerCase().includes(q);
-    return nameMatch || skuMatch;
-  }).sort((a, b) => {
-    if (sortOption === 'priceAsc') return a.price - b.price;
-    if (sortOption === 'priceDesc') return b.price - a.price;
-    if (sortOption === 'stockAsc') return (a.stock || 0) - (b.stock || 0);
-    if (sortOption === 'expiration') {
-      if (!a.expirationDate) return 1;
-      if (!b.expirationDate) return -1;
-      return new Date(a.expirationDate) - new Date(b.expirationDate);
-    }
-    return (a.name || '').localeCompare(b.name || '');
-  });
-
   const [productsPerPage, setProductsPerPage] = useState(() => (typeof window !== 'undefined' && window.innerWidth >= 768) ? 10 : 6);
   useEffect(() => { const handleResize = () => setProductsPerPage(window.innerWidth >= 768 ? 10 : 6); handleResize(); window.addEventListener('resize', handleResize); return () => window.removeEventListener('resize', handleResize); }, []);
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / productsPerPage));
@@ -576,7 +578,7 @@ export default function ProductsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
         <div className="flex gap-2 w-full sm:w-auto">
           <button onClick={() => { setView('active'); setCurrentPage(1); }} className={`flex-1 sm:flex-none px-4 py-2 rounded ${view === 'active' ? 'bg-[#8B0000] text-white' : 'bg-gray-100'}`}>Ativos</button>
-          <button onClick={() => { setView('archived'); setCurrentPage(1); }} className={`flex-1 sm:flex-none px-4 py-2 rounded ${view === 'archived' ? 'bg-[#8B0000] text-white' : 'bg-gray-100'}`}>Arquivados</button>
+          <button onClick={() => { setView('archived'); setCurrentPage(1); }} className={`flex-1 sm:flex-none px-4 py-2 rounded ${view === 'archived' ? 'bg-[#8B0000] text-white' : 'bg-gray-100'}`}>Vendidos</button>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
           <span className="text-sm text-gray-600 mr-2 hidden md:inline">
@@ -666,7 +668,7 @@ export default function ProductsPage() {
                       <>
                         <button onClick={() => handleCopyLink(product.link)} className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded border"><LinkIcon size={16} /> Link</button>
                         <button onClick={() => handleEditClick(product)} className="flex items-center gap-2 px-3 py-1 bg-yellow-50 rounded border"><Edit size={16} /> Editar</button>
-                        <button onClick={() => { setArchiveConfirmId(product.id); }} className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded border"><Archive size={16} /> Arquivar</button>
+                        <button onClick={() => { setArchiveConfirmId(product.id); }} className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded border"><Archive size={16} /> Vendido</button>
                         <button onClick={() => handleDeleteClick(product.id)} className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-700 rounded border"><Trash2 size={16} /> Excluir</button>
                       </>
                     )}
@@ -697,11 +699,11 @@ export default function ProductsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setArchiveConfirmId(null)} />
           <div className="bg-white rounded-lg shadow-lg z-10 max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold mb-2">Confirmar arquivamento</h3>
-            <p className="text-sm text-gray-600 mb-4">Tem certeza que deseja arquivar este produto? Ele ficará oculto na loja mas poderá ser restaurado.</p>
+            <h3 className="text-lg font-semibold mb-2">Confirmar venda</h3>
+            <p className="text-sm text-gray-600 mb-4">Tem certeza que deseja mover este produto para a aba Vendidos? Ele ficará oculto na loja.</p>
             <div className="flex justify-end gap-3">
               <button onClick={() => setArchiveConfirmId(null)} className="px-4 py-2 border rounded">Cancelar</button>
-              <button onClick={() => handleArchiveProduct(archiveConfirmId)} className="px-4 py-2 bg-yellow-500 text-white rounded">Sim, arquivar</button>
+              <button onClick={() => handleArchiveProduct(archiveConfirmId)} className="px-4 py-2 bg-yellow-500 text-white rounded">Sim, mover</button>
             </div>
           </div>
         </div>
