@@ -38,7 +38,7 @@ const HeroSection = ({ products = [] }) => {
                                         // Placeholder caso não haja imagens
                                         <div className="w-full h-full bg-gray-200 rounded-2xl border-4 border-white rotate-3"></div>
                                     )}
-                                    
+
                                 </div>
                                 <div className="absolute -bottom-6 -left-6 bg-white p-3 rounded-xl shadow-xl border border-gray-100 flex items-center gap-2 animate-bounce-slow">
                                     <div className="bg-green-100 p-1.5 rounded-full text-green-700">
@@ -64,7 +64,7 @@ const HeroSection = ({ products = [] }) => {
                             Exclusivo para Salvador
                         </div>
                         <h2 className="text-4xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">Viu, gostou, pegou. <br /><span className="text-[#8B0000]">Sem esperar.</span></h2>
-                        <p className="text-lg text-gray-600 mb-8 max-w-lg leading-relaxed">Aqui na <span className="text-[#8B0000]"><strong>Vitoria</strong></span>, todos os produtos já estão comigo. Pediu hoje, chegou hoje.</p>
+                        <p className="text-lg text-gray-600 mb-8 max-w-lg leading-relaxed">Aqui na <span className="text-[#8B0000]"><strong>Vitória</strong></span>, todos os produtos já estão comigo. Pediu hoje, chegou hoje.</p>
                     </div>
                     <div className="hidden md:flex md:w-1/2 justify-center relative">
                         <div className="relative">
@@ -76,7 +76,7 @@ const HeroSection = ({ products = [] }) => {
                                     // Placeholder caso não haja imagens
                                     <div className="w-full h-full bg-gray-200 rounded-2xl border-4 border-white rotate-3"></div>
                                 )}
-                                
+
                             </div>
                             <div className="absolute -bottom-6 -left-6 bg-white p-3 rounded-xl shadow-xl border border-gray-100 flex items-center gap-2 animate-bounce-slow">
                                 <div className="bg-green-100 p-1.5 rounded-full text-green-700">

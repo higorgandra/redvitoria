@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
 import { Check, ChevronLeft, ChevronRight, Instagram, SlidersHorizontal, ArrowUpDown, Gift, Sparkles, Tag, XCircle, Link as LinkIcon, X } from 'lucide-react';
 import LogoSlider from './LogoSlider';
@@ -10,6 +10,24 @@ import { db } from './firebase';
 import Header from '/Header.jsx'; // 1. Importar o novo Header
 import { useBodyScrollLock } from './useBodyScrollLock';
 import { collection, getDocs } from 'firebase/firestore';
+
+// Um produto so aparece na vitrine se nao estiver arquivado e tiver estoque.
+// Esta funcao e a unica fonte desse criterio: e usada tanto para montar a
+// lista de produtos filtrada quanto para decidir quais marcas aparecem no
+// modal. Se as duas divergissem, o filtro poderia oferecer uma marca que
+// devolve zero resultados.
+const isDisponivel = (p) => p.status !== 'Arquivado' && (Number(p.stock) || 0) > 0;
+
+const brands = [
+  { value: 'all', label: 'Todas' },
+  { value: 'natura', label: 'Natura' },
+  { value: 'boticario', label: 'Boticário' },
+  { value: 'avon', label: 'Avon' },
+  { value: 'eudora', label: 'Eudora' },
+  { value: 'quem-disse-berenice', label: 'Quem disse, Berenice?' },
+  { value: 'loccitane-au-bresil', label: "L'occitane Au Brésil" },
+  { value: 'oui-paris', label: 'O.U.i Paris' },
+];
 
 const brandColors = {
     boticario: "bg-green-700",
@@ -33,7 +51,9 @@ const HomePage = ({ cart, addToCart }) => {
     const [products, setProducts] = useState([]); // Estado para ordenação: 'price_asc', 'price_desc', 'discount_desc' ou null
     // Cópia bruta da coleção, carregada uma única vez. Filtrar e ordenar passou
     // a ser feito sobre ela, em vez de reler o Firestore inteiro a cada clique.
-    const allProductsRef = useRef([]);
+    // É estado, e não ref, porque a lista de marcas do filtro deriva dela e
+    // precisa ser recalculada quando a carga termina.
+    const [allProducts, setAllProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState(null);
 
@@ -44,17 +64,13 @@ const HomePage = ({ cart, addToCart }) => {
     const queryParams = new URLSearchParams(location.search);
     const [currentPage, setCurrentPage] = useState(location.state?.page || parseInt(queryParams.get('page')) || 1);
 
-    // Efeito para buscar os produtos do Firestore
-    const brands = [
-      { value: 'all', label: 'Todas' },
-      { value: 'natura', label: 'Natura' },
-      { value: 'boticario', label: 'Boticário' },
-      { value: 'avon', label: 'Avon' },
-      { value: 'eudora', label: 'Eudora' },
-      { value: 'quem-disse-berenice', label: 'Quem disse, Berenice?' },
-      { value: 'loccitane-au-bresil', label: "L'occitane Au Brésil" },
-      { value: 'oui-paris', label: 'O.U.i Paris' },
-    ];
+    // Só as marcas que hoje têm ao menos um produto disponível. Evita oferecer
+    // um filtro que levaria a uma vitrine vazia.
+    const availableBrands = useMemo(() => {
+      const comEstoque = new Set(allProducts.filter(isDisponivel).map(p => p.brand));
+      return brands.filter(b => b.value !== 'all' && comEstoque.has(b.value));
+    }, [allProducts]);
+
     const selectedBrandLabel = brands.find(b => b.value === activeBrand)?.label || 'Selecionar Marca';
 
     useEffect(() => {
@@ -67,7 +83,7 @@ const HomePage = ({ cart, addToCart }) => {
           // documentos sem o campo `status`, daí a checagem de `undefined`.
           const snapshot = await getDocs(collection(db, 'products'));
           const productsList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-          allProductsRef.current = productsList;
+          setAllProducts(productsList);
           setProducts(productsList.filter(p => p.status !== undefined && p.status !== 'Arquivado'));
         } catch (err) {
           console.error('Erro ao carregar produtos:', err);
@@ -85,7 +101,7 @@ const HomePage = ({ cart, addToCart }) => {
     const loadProductsFromDB = ({ brand = 'all', sort = null } = {}) => {
       try {
         // Exclude archived and require stock > 0 (reflect DB stock)
-        let list = allProductsRef.current.filter(p => p.status !== 'Arquivado' && (Number(p.stock) || 0) > 0);
+        let list = allProducts.filter(isDisponivel);
         if (brand && brand !== 'all') list = list.filter(p => p.brand === brand);
 
         const getNumericPrice = (priceValue) => {
@@ -458,13 +474,18 @@ const HomePage = ({ cart, addToCart }) => {
             <button onClick={() => { setActiveBrand('all'); setActiveModal(null); loadProductsFromDB({ brand: 'all', sort: sortBy }); }} className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === 'all' ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}>
               Todos
             </button>
-            {brands.filter(b => b.value !== 'all').map(brand => (
+            {availableBrands.map(brand => (
               <button
                 key={brand.value}
                 onClick={() => { setActiveBrand(brand.value); setActiveModal(null); loadProductsFromDB({ brand: brand.value, sort: sortBy }); }} className={`w-full text-left p-4 rounded-lg text-gray-700 font-semibold transition ${activeBrand === brand.value ? 'bg-red-100 text-red-800' : 'bg-gray-100 hover:bg-gray-200'}`}>
                 {brand.label}
               </button>
             ))}
+            {availableBrands.length === 0 && (
+              <p className="col-span-2 text-sm text-gray-500 text-center py-2">
+                Nenhuma marca com produtos disponíveis no momento.
+              </p>
+            )}
           </div>
         </FilterModal>
 
