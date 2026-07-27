@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
 import { Check, ChevronLeft, ChevronRight, Instagram, SlidersHorizontal, ArrowUpDown, Gift, Sparkles, Tag, XCircle, Link as LinkIcon, X } from 'lucide-react';
 import LogoSlider from './LogoSlider';
@@ -243,11 +243,12 @@ const HomePage = ({ cart, addToCart }) => {
             case 'price_desc':
                 if (b.price !== a.price) return b.price - a.price;
                 break; // Se os preços forem iguais, cai para a ordenação padrão por nome
-            case 'discount_desc':
+            case 'discount_desc': {
                 const discountA = calculateDiscount(a);
                 const discountB = calculateDiscount(b);
                 if (discountB !== discountA) return discountB - discountA;
                 break; // Se os descontos forem iguais, cai para a ordenação padrão por nome
+            }
             default:
                 // A ordenação padrão agora é por nome, garantindo uma ordem estável e previsível.
                 // Isso corrige o bug de duplicação ao paginar.
@@ -272,22 +273,6 @@ const HomePage = ({ cart, addToCart }) => {
     const indexOfLastProduct = currentPage * productsPerPage;
     const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
     let currentProducts = regularProducts.slice(indexOfFirstProduct, indexOfLastProduct);
-
-    const handlePageChange = (newPage) => {
-        if (newPage > 0 && newPage <= totalPages) {
-            setCurrentPage(newPage);
-            // Atualiza a query string para refletir a página atual
-            try {
-              const params = new URLSearchParams(location.search);
-              if (newPage > 1) params.set('page', String(newPage));
-              else params.delete('page');
-              const search = params.toString();
-              navigate(location.pathname + (search ? `?${search}` : ''), { replace: false });
-            } catch (err) {
-              console.error('Erro ao atualizar query page:', err);
-            }
-        }
-    };
 
     const handleBottomPageChange = (event, newPage) => {
         // Remove o foco do botão clicado para resetar a aparência

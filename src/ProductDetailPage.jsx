@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { db } from './firebase';
-import { doc, getDoc, collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { ShoppingBag, ArrowLeft, Check, Loader2, Plus, Minus, ShieldCheck, AlertTriangle, Package, Share2 } from 'lucide-react';
 import ProductCard from './ProductCard'; // Para produtos relacionados
 import Header from '/Header.jsx'; // Importar o novo Header

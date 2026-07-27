@@ -28,9 +28,14 @@ const HeroCarousel = ({ products = [] }) => {
   };
 
   useEffect(() => {
-    const slideInterval = setInterval(nextSlide, 5000); // Muda a cada 5 segundos
+    // A atualização funcional evita depender de `nextSlide` (que é recriada a
+    // cada render) e de `currentIndex`. Antes o intervalo era destruído e
+    // recriado a cada troca de slide.
+    const slideInterval = setInterval(() => {
+      setCurrentIndex(prev => (prev === banners.length - 1 ? 0 : prev + 1));
+    }, 5000); // Muda a cada 5 segundos
     return () => clearInterval(slideInterval);
-  }, [currentIndex]);
+  }, [banners.length]);
 
   if (banners.length === 0) {
     // Mostra um placeholder se não houver banners/produtos

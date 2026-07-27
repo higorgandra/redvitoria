@@ -5,7 +5,7 @@ import { ShoppingBag, Send, Share2, Check } from 'lucide-react';
 import { db } from './firebase';
 import { doc, setDoc, increment } from 'firebase/firestore';
 
-const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted, currentPage, showShareIcon }) => {
+const ProductCard = ({ product, cart, onAddToCart, isHighlighted, currentPage, showShareIcon }) => {
   const [hasCopied, setHasCopied] = useState(false);
 
   const { ref, inView } = useInView({
@@ -104,7 +104,7 @@ const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted, c
   const handlePointerDown = () => {
     try {
       pointerScrollRef.current = window.scrollY;
-    } catch (err) {
+    } catch {
       pointerScrollRef.current = 0;
     }
   };
@@ -175,7 +175,7 @@ const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted, c
       if (e && e.target && e.target.closest && e.target.closest('a, button')) {
         return;
       }
-    } catch (err) {
+    } catch {
       // ignore
     }
 

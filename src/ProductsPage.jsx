@@ -1,21 +1,19 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { PlusCircle, Search, Archive, Edit, MoreVertical, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, X, CheckCircle, AlertCircle, Megaphone, Trash2, ClipboardPaste, RefreshCw, Image as ImageIcon, Link as LinkIcon, TrendingUp, ArrowUpDown } from 'lucide-react';
 import { db } from './firebase';
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where } from 'firebase/firestore';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('active');
-  const [brandFilter, setBrandFilter] = useState('all');
+  const [brandFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [isBrandPopupOpen, setIsBrandPopupOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [newProductData, setNewProductData] = useState({ name: '', image: '', brand: 'boticario', category: 'perfumaria', stock: 0, fullPrice: '', discountPercentage: '', price: '', description: '', slug: '', expirationDate: '', costPrice: '', isFeatured: false });
   const [editFormData, setEditFormData] = useState({});
-  const [activeDropdownId, setActiveDropdownId] = useState(null);
   const [archiveConfirmId, setArchiveConfirmId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
@@ -53,8 +51,8 @@ export default function ProductsPage() {
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove acentos
       .trim()
       .replace(/\s+/g, '-')
-      .replace(/[^\w\-]+/g, '')
-      .replace(/\-\-+/g, '-')
+      .replace(/[^\w-]+/g, '')
+      .replace(/--+/g, '-')
       .replace(/^-+/, '')
       .replace(/-+$/, '');
   };
@@ -128,6 +126,9 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProducts();
+    // Busca única na montagem. `fetchProducts` é recriada a cada render, então
+    // incluí-la nas dependências refaria a busca sem parar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredProducts = useMemo(() => {
@@ -243,6 +244,10 @@ export default function ProductsPage() {
       calculatePrices(newProductData, setNewProductData);
     }
 
+    // Depender de `newProductData`/`editFormData` inteiros criaria um laço
+    // infinito: este efeito escreve nesses dois objetos. As dependências abaixo
+    // são exatamente os campos que devem disparar o recálculo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     isAddModalOpen, newProductData.fullPrice, newProductData.discountPercentage, newProductData.price,
     editingProduct, editFormData.fullPrice, editFormData.discountPercentage, editFormData.price
@@ -280,7 +285,7 @@ export default function ProductsPage() {
       if (parseInt(newProductData.stock, 10) <= 0) errors.stock = 'O estoque deve ser maior que zero.';
     }
 
-    if (newProductData.slug && /[^a-z0-9\-]/.test(newProductData.slug.toLowerCase())) {
+    if (newProductData.slug && /[^a-z0-9-]/.test(newProductData.slug.toLowerCase())) {
       errors.slug = 'O Slug deve conter apenas letras, números e hífens (sem espaços ou caracteres especiais).';
     }
 
@@ -382,22 +387,8 @@ export default function ProductsPage() {
     }
   };
 
-  const handleDeleteClick = (productId) => { setDeleteConfirmId(productId); setActiveDropdownId(null); };
+  const handleDeleteClick = (productId) => { setDeleteConfirmId(productId); };
   const handleDeleteProduct = async () => { if (!deleteConfirmId) return; try { await deleteDoc(doc(db, 'products', String(deleteConfirmId))); setProducts(prev => prev.filter(p => p.id !== deleteConfirmId)); setDeleteConfirmId(null); setToastMessage({ type: 'success', message: 'Produto excluído permanentemente.' }); } catch (err) { console.error('Erro ao excluir produto:', err); setToastMessage({ type: 'error', message: 'Não foi possível excluir o produto.' }); } };
-
-  // Immediate delete helper (used by the UI delete button)
-  const handleDeleteNow = async (productId) => {
-    try {
-      await deleteDoc(doc(db, 'products', String(productId)));
-      setProducts(prev => prev.filter(p => p.id !== productId));
-      setToastMessage({ type: 'success', message: 'Produto excluído permanentemente.' });
-    } catch (err) {
-      console.error('Erro ao excluir produto:', err);
-      setToastMessage({ type: 'error', message: 'Não foi possível excluir o produto.' });
-    }
-  };
-
-  const handleDropdownToggle = (e, productId) => { e.stopPropagation(); setActiveDropdownId(prev => (prev === productId ? null : productId)); };
 
   const handleEditClick = (product) => {
     lastChangedFieldRef.current = null; // Reseta o rastreamento para evitar recálculos automáticos indesejados ao abrir
@@ -410,13 +401,13 @@ export default function ProductsPage() {
     setEditFormData({ ...product, fullPrice, description: product.description || '', slug: product.slug || '', link: product.link || '', category: product.category || 'perfumaria', discountPercentage: discountPercentage > 0 ? discountPercentage.toFixed(0) : '', expirationDate: product.expirationDate || '', costPrice: product.costPrice || '', isFeatured: product.isFeatured || false });
   };
 
-  const handleUpdateProduct = async (publish = true) => {
+  const handleUpdateProduct = async () => {
     if (!editingProduct) return;
     const productId = String(editingProduct.id);
     const stock = parseInt(editFormData.stock, 10);
     let status = editFormData.status;
 
-    if (editFormData.slug && /[^a-z0-9\-]/.test(editFormData.slug.toLowerCase())) {
+    if (editFormData.slug && /[^a-z0-9-]/.test(editFormData.slug.toLowerCase())) {
       setToastMessage({ type: 'error', message: 'O Slug deve conter apenas letras, números e hífens.' });
       return;
     }
@@ -498,14 +489,11 @@ export default function ProductsPage() {
   const [productsPerPage, setProductsPerPage] = useState(() => (typeof window !== 'undefined' && window.innerWidth >= 768) ? 10 : 6);
   useEffect(() => { const handleResize = () => setProductsPerPage(window.innerWidth >= 768 ? 10 : 6); handleResize(); window.addEventListener('resize', handleResize); return () => window.removeEventListener('resize', handleResize); }, []);
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / productsPerPage));
-  useEffect(() => { if (currentPage > totalPages) setCurrentPage(totalPages); }, [totalPages]);
+  useEffect(() => { if (currentPage > totalPages) setCurrentPage(totalPages); }, [currentPage, totalPages]);
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
   const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
   const handlePageChange = (newPage) => { if (newPage > 0 && newPage <= totalPages) setCurrentPage(newPage); };
-
-  // Verifica se já existe um produto com o status 'Anúncio'
-  const adExists = products.some(p => p.status === 'Anúncio');
 
   const brands = [
     { value: 'all', label: 'Todas' },

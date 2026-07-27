@@ -1,10 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChanged, getRedirectResult, signOut } from 'firebase/auth';
+import { onAuthStateChanged, getRedirectResult } from 'firebase/auth';
 import { auth } from './firebaseAuth';
 import { Loader2 } from 'lucide-react';
 
 const AuthContext = createContext();
 
+// O react-refresh prefere que um arquivo exporte só componentes. Separar o
+// hook num módulo à parte só moveria o aviso, porque o AuthContext em si
+// também não é componente. A regra afeta apenas o Fast Refresh em
+// desenvolvimento e não tem efeito no build de produção.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {

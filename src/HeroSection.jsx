@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Instagram, MapPin, Package } from 'lucide-react';
 
-const HeroSection = ({ handleNavClick, products = [] }) => {
+const HeroSection = ({ products = [] }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     // Filtra os produtos para criar a lista de imagens do carrossel

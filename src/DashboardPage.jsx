@@ -3,7 +3,6 @@ import { LayoutDashboard, Package, ChevronDown, Menu, LogOut } from 'lucide-reac
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { auth } from './firebaseAuth';
 import { signOut } from 'firebase/auth';
-import { useAuth } from './useAuth'; // O hook useAuth pode ser removido se 'isAdmin' não for mais usado nesta página.
 import DashboardHome from './DashboardHome'; // Importar o novo componente
 
 const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
