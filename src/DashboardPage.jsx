@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LayoutDashboard, Package, ChevronDown, Menu, LogOut } from 'lucide-react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { auth } from './firebase';
+import { auth } from './firebaseAuth';
 import { signOut } from 'firebase/auth';
 import { useAuth } from './useAuth'; // O hook useAuth pode ser removido se 'isAdmin' não for mais usado nesta página.
 import DashboardHome from './DashboardHome'; // Importar o novo componente
@@ -90,7 +90,7 @@ const DashboardPage = () => {
 
                         <div className="relative" ref={dropdownRef}>
                             <button onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} className="flex items-center gap-3 cursor-pointer p-1 rounded-lg hover:bg-gray-100">
-                                <img src="https://i.postimg.cc/RFWS3s7N/571330743-18534298507005557-1264770583319279576-n.jpg" alt="Admin" className="w-9 h-9 rounded-full" />
+                                <img src="https://i.postimg.cc/RFWS3s7N/571330743-18534298507005557-1264770583319279576-n.jpg" alt="Admin" loading="lazy" decoding="async" className="w-9 h-9 rounded-full" />
                                 <div className="hidden sm:block text-left">
                                     <p className="text-sm font-semibold text-gray-800">Vitória Mota</p>
                                     <p className="text-xs text-gray-500">Administradora</p>

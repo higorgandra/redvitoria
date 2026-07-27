@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth, provider } from './firebase'; // Importaremos do firebase.js
+import { auth, provider } from './firebaseAuth';
 import { useAuth } from './AuthContext';
 import { signInWithPopup, signInWithRedirect, signOut } from "firebase/auth";
 import { ShoppingBag, Loader2 } from 'lucide-react';
@@ -88,7 +88,7 @@ const LoginPage = () => {
           {isLoggingIn ? (
             <Loader2 className="animate-spin text-gray-500" size={20} />
           ) : (
-            <img className="w-6 h-6" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo" />
+            <img className="w-6 h-6" loading="lazy" decoding="async" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo" />
           )}
           <span className="text-sm font-medium text-gray-700">{isLoggingIn ? 'Aguarde...' : 'Entrar com Google'}</span>
         </button>

@@ -1,15 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 import HomePage from './HomePage';
-import LoginPage from './LoginPage';
 import ProductDetailPage from './ProductDetailPage.jsx'; // Importando a nova página de produto
-import DashboardPage from './DashboardPage.jsx'; // Importando o novo dashboard com a extensão
-import DashboardHome from './DashboardHome.jsx';
-import ProductsPage from './ProductsPage.jsx';
 import CartPage from './CartPage.jsx';
-import ProtectedRoute from './ProtectedRoute.jsx';
 import SocialPage from './SocialPage.jsx'; // Importar a nova página
-import { AuthProvider } from './AuthContext.jsx';
+
+// O painel administrativo e a tela de login só interessam ao admin, mas
+// estavam no mesmo bundle que a loja. Carregados sob demanda, saem do caminho
+// crítico. O AuthLayout e o ProtectedRoute entram na lista porque são eles que
+// puxam o `firebase/auth`: enquanto fossem importados aqui de forma estática,
+// o SDK de autenticação continuaria no bundle principal.
+const AuthLayout = lazy(() => import('./AuthLayout.jsx'));
+const ProtectedRoute = lazy(() => import('./ProtectedRoute.jsx'));
+const LoginPage = lazy(() => import('./LoginPage.jsx'));
+const DashboardPage = lazy(() => import('./DashboardPage.jsx'));
+const DashboardHome = lazy(() => import('./DashboardHome.jsx'));
+const ProductsPage = lazy(() => import('./ProductsPage.jsx'));
+
+const RouteFallback = () => (
+  <div className="flex justify-center items-center h-screen-dynamic bg-white">
+    <Loader2 className="animate-spin text-[#8B0000]" size={48} />
+  </div>
+);
+
 import { db } from './firebase';
 import { safeSessionStorage } from './safeStorage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -108,29 +122,35 @@ const App = () => {
   const clearCart = () => setCart([]);
 
   return (
-    <AuthProvider>
-      <Router>
-        <ScrollToTop />
-        <Routes>
-          <Route path="/" element={<HomePage cart={cart} addToCart={addToCart} />} />
-          <Route path="/carrinho" element={<CartPage cart={cart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} clearCart={clearCart} />} />
-          <Route path="/produto/:productId" element={<ProductDetailPage cart={cart} addToCart={addToCart} />} />
-          <Route path="/social" element={<SocialPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          {/* 2. Envolver a rota do Dashboard com o ProtectedRoute */}
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }>
-            <Route index element={<DashboardHome />} />
-            <Route path="produtos" element={<ProductsPage />} />
-          </Route>
+    <Router>
+      <ScrollToTop />
+      <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            <Route path="/" element={<HomePage cart={cart} addToCart={addToCart} />} />
+            <Route path="/carrinho" element={<CartPage cart={cart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} clearCart={clearCart} />} />
+            <Route path="/produto/:productId" element={<ProductDetailPage cart={cart} addToCart={addToCart} />} />
+            <Route path="/social" element={<SocialPage />} />
+
+            {/* Área autenticada. O AuthLayout é uma rota-layout sem caminho:
+                ele só fornece o AuthProvider para as rotas aninhadas, em vez
+                de envolver a loja inteira. */}
+            <Route element={<AuthLayout />}>
+              <Route path="/login" element={<LoginPage />} />
+              {/* 2. Envolver a rota do Dashboard com o ProtectedRoute */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }>
+                <Route index element={<DashboardHome />} />
+                <Route path="produtos" element={<ProductsPage />} />
+              </Route>
+            </Route>
         </Routes>
-      </Router>
-    </AuthProvider>
+      </Suspense>
+    </Router>
   );
 };
 

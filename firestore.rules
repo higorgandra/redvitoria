@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// Regras de acesso ao Firestore.
+//
+// Estas regras sao o UNICO controle real de escrita no banco. O ProtectedRoute
+// e a checagem de UID no React apenas escondem a interface — qualquer pessoa
+// pode chamar o SDK do Firebase direto pelo console do navegador, porque a
+// configuracao do projeto e publica por natureza numa aplicacao web.
+//
+// Para publicar:  firebase deploy --only firestore:rules
+// (ou cole o conteudo em Firestore > Regras no console do Firebase)
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.uid == 'JC6P8EQrLBOc9fzKm3XdXkKGb0i1';
+    }
+
+    // Catalogo: qualquer visitante le, so o painel escreve.
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Contadores de interacao. O site precisa incrementar sem login, entao a
+    // regra limita o estrago: so este documento, e so estes tres campos. Nao
+    // da para criar campos novos nem gravar em outro lugar da colecao.
+    match /metrics/userInteractions {
+      allow read: if isAdmin();
+      allow delete: if isAdmin();
+      allow create, update: if isAdmin()
+        || request.resource.data.keys().hasOnly(
+             ['addToCartClicks', 'whatsappClicks', 'adCardClicks']
+           );
+    }
+
+    match /metrics/{metricId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Registro de visitas: o site so pode CRIAR. Nao pode listar (senao
+    // exporia o historico de acessos), nem editar, nem apagar.
+    match /visits/{visitId} {
+      allow read, delete: if isAdmin();
+      allow update: if false;
+      allow create: if request.resource.data.keys().hasOnly(
+        ['timestamp', 'userAgent']
+      );
+    }
+
+    // Qualquer colecao nao listada acima fica fechada.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

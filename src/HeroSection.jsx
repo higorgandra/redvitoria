@@ -33,7 +33,7 @@ const HeroSection = ({ handleNavClick, products = [] }) => {
                                 <div className="absolute -inset-4 bg-[#B22222]/20 rounded-full blur-xl"></div>
                                 <div className="relative w-64 h-64">
                                     {carouselImages.length > 0 ? carouselImages.map((image, index) => (
-                                        <img key={index} alt={image.alt} className={`absolute inset-0 rounded-2xl shadow-2xl object-cover w-full h-full border-4 border-white rotate-3 transition-opacity duration-1000 ease-in-out ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'}`} src={image.src} />
+                                        <img key={index} alt={image.alt} {...(index === 0 ? { fetchPriority: "high" } : { loading: "lazy" })} decoding="async" className={`absolute inset-0 rounded-2xl shadow-2xl object-cover w-full h-full border-4 border-white rotate-3 transition-opacity duration-1000 ease-in-out ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'}`} src={image.src} />
                                     )) : (
                                         // Placeholder caso não haja imagens
                                         <div className="w-full h-full bg-gray-200 rounded-2xl border-4 border-white rotate-3"></div>
@@ -71,7 +71,7 @@ const HeroSection = ({ handleNavClick, products = [] }) => {
                             <div className="absolute -inset-4 bg-[#B22222]/20 rounded-full blur-xl"></div>
                             <div className="relative w-72 h-72 md:w-96 md:h-96">
                                 {carouselImages.length > 0 ? carouselImages.map((image, index) => (
-                                    <img key={index} alt={image.alt} className={`absolute inset-0 rounded-2xl shadow-2xl object-cover w-full h-full border-4 border-white rotate-3 transition-opacity duration-1000 ease-in-out ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'}`} src={image.src} />
+                                    <img key={index} alt={image.alt} {...(index === 0 ? { fetchPriority: "high" } : { loading: "lazy" })} decoding="async" className={`absolute inset-0 rounded-2xl shadow-2xl object-cover w-full h-full border-4 border-white rotate-3 transition-opacity duration-1000 ease-in-out ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'}`} src={image.src} />
                                 )) : (
                                     // Placeholder caso não haja imagens
                                     <div className="w-full h-full bg-gray-200 rounded-2xl border-4 border-white rotate-3"></div>

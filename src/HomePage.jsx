@@ -9,7 +9,7 @@ import ProductCard from './ProductCard';
 import { db } from './firebase';
 import Header from '/Header.jsx'; // 1. Importar o novo Header
 import { useBodyScrollLock } from './useBodyScrollLock';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 
 const brandColors = {
     boticario: "bg-green-700",
@@ -31,6 +31,9 @@ const HomePage = ({ cart, addToCart }) => {
     const [activeModal, setActiveModal] = useState(null); // 'brand', 'price', ou null
     const [showNotification, setShowNotification] = useState(false);    
     const [products, setProducts] = useState([]); // Estado para ordenação: 'price_asc', 'price_desc', 'discount_desc' ou null
+    // Cópia bruta da coleção, carregada uma única vez. Filtrar e ordenar passou
+    // a ser feito sobre ela, em vez de reler o Firestore inteiro a cada clique.
+    const allProductsRef = useRef([]);
     const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState(null);
 
@@ -57,24 +60,32 @@ const HomePage = ({ cart, addToCart }) => {
     useEffect(() => {
       const fetchProducts = async () => {
         setLoading(true);
-        // Busca todos os produtos que não estão arquivados. O card de anúncio será tratado separadamente.
-        const q = query(collection(db, "products"), where("status", "!=", "Arquivado")); 
-        const querySnapshot = await getDocs(q);
-        const productsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setProducts(productsList);
-        setLoading(false);
+        try {
+          // Uma única leitura da coleção por sessão. O filtro de arquivados era
+          // feito no servidor com `where("status", "!=", "Arquivado")`; aqui ele
+          // é reproduzido em memória. O `!=` do Firestore também descarta
+          // documentos sem o campo `status`, daí a checagem de `undefined`.
+          const snapshot = await getDocs(collection(db, 'products'));
+          const productsList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+          allProductsRef.current = productsList;
+          setProducts(productsList.filter(p => p.status !== undefined && p.status !== 'Arquivado'));
+        } catch (err) {
+          console.error('Erro ao carregar produtos:', err);
+        } finally {
+          setLoading(false);
+        }
       };
       fetchProducts();
     }, []);
 
-    // Helper: load products from Firestore respecting stock in DB (used by Ordenar / Filtrar)
-    const loadProductsFromDB = async ({ brand = 'all', sort = null } = {}) => {
-      setLoading(true);
+    // Aplica marca/ordenação sobre a cópia já carregada (usado por Ordenar / Filtrar).
+    // Antes esta função relia a coleção inteira do Firestore a cada clique, o que
+    // fazia o número de leituras crescer com o uso dos filtros. O resultado é o
+    // mesmo; muda só a origem dos dados.
+    const loadProductsFromDB = ({ brand = 'all', sort = null } = {}) => {
       try {
-        const snapshot = await getDocs(collection(db, 'products'));
-        let list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         // Exclude archived and require stock > 0 (reflect DB stock)
-        list = list.filter(p => p.status !== 'Arquivado' && (Number(p.stock) || 0) > 0);
+        let list = allProductsRef.current.filter(p => p.status !== 'Arquivado' && (Number(p.stock) || 0) > 0);
         if (brand && brand !== 'all') list = list.filter(p => p.brand === brand);
 
         const getNumericPrice = (priceValue) => {
@@ -100,9 +111,7 @@ const HomePage = ({ cart, addToCart }) => {
         setProducts(list);
         setCurrentPage(1);
       } catch (err) {
-        console.error('Erro ao carregar produtos do DB para filtros:', err);
-      } finally {
-        setLoading(false);
+        console.error('Erro ao aplicar filtros:', err);
       }
     };
 
@@ -223,8 +232,10 @@ const HomePage = ({ cart, addToCart }) => {
         return 0;
     };
 
-    // Aplica a ordenação, se definida
-    const sortedProducts = products.sort((a, b) => {
+    // Aplica a ordenação, se definida.
+    // A cópia com `[...]` é obrigatória: `sort` ordena no lugar, e usar
+    // `products.sort()` direto mutava o array guardado no estado do React.
+    const sortedProducts = [...products].sort((a, b) => {
         switch (sortBy) {
             case 'price_asc':
                 if (a.price !== b.price) return a.price - b.price;
@@ -371,7 +382,10 @@ const HomePage = ({ cart, addToCart }) => {
                 {/* Botão para abrir o modal de preço */}
                 <button 
                   onClick={() => setActiveModal('price')}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50"
+                  // Os filtros trabalham sobre a cópia em memória; enquanto ela
+                  // não chegou, filtrar produziria uma lista vazia.
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ArrowUpDown size={16} />
                   <span>
@@ -384,7 +398,8 @@ const HomePage = ({ cart, addToCart }) => {
                 {/* Botão para abrir o modal de marcas */}
                 <button 
                   onClick={() => setActiveModal('brand')}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50"
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <SlidersHorizontal size={16} />
                   <span>{activeBrand === 'all' ? 'Filtrar' : selectedBrandLabel}</span>

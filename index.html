@@ -4,6 +4,14 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <!-- Adianta o handshake (DNS + TLS) dos domínios que o app procura logo
+         no primeiro render: o Firestore, de onde vêm os produtos, e o host
+         das imagens. Sem isto a conexão só começa depois que o JS executa. -->
+    <!-- O `crossorigin` vai só no Firestore: ele é acessado por fetch com CORS.
+         As imagens são <img> comuns, sem CORS, e usam outro pool de conexões —
+         com o atributo, a conexão pré-aberta não seria reaproveitada. -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://i.postimg.cc" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>RedVitoria</title>
     <!-- Google tag (gtag.js) -->

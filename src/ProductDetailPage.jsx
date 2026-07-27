@@ -178,7 +178,7 @@ const ProductDetailPage = ({ cart, addToCart }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
                         {/* Coluna da Imagem */}
                         <div className="bg-gray-100 rounded-lg flex items-center justify-center p-4 aspect-square relative">
-                            <img src={product.image} alt={product.name} className="max-w-full max-h-full object-contain" />
+                            <img src={product.image} alt={product.name} fetchPriority="high" decoding="async" className="max-w-full max-h-full object-contain" />
                             {product.sku && (
                                 <span className="absolute bottom-2 left-2 bg-black/40 text-white text-xs font-mono px-2 py-1 rounded">
                                     Cod: {product.sku}

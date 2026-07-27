@@ -81,6 +81,10 @@ const SocialPage = () => {
         <img
           src="https://i.postimg.cc/RFWS3s7N/571330743-18534298507005557-1264770583319279576-n.jpg"
           alt="Vitória Mota"
+          width="96"
+          height="96"
+          fetchPriority="high"
+          decoding="async"
           className="w-24 h-24 rounded-full object-cover shadow-lg border-4 border-white mb-4"
         />
         <h1 className="text-2xl font-bold text-gray-900">

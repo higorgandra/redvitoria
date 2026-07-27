@@ -23,13 +23,13 @@ const LogoSlider = () => {
             {/* Renderiza o primeiro conjunto de logos */}
             {logos.map((logo, index) => (
               <div key={`logo1-${index}`} className="flex-shrink-0 w-48 mx-8 flex items-center justify-center">
-                <img src={logo.src} alt={logo.name} className="max-h-8 w-auto object-contain grayscale opacity-60" />
+                <img src={logo.src} alt={logo.name} loading="lazy" decoding="async" className="max-h-8 w-auto object-contain grayscale opacity-60" />
               </div>
             ))}
             {/* Renderiza o segundo conjunto de logos para o loop contínuo */}
             {logos.map((logo, index) => (
               <div key={`logo2-${index}`} className="flex-shrink-0 w-48 mx-8 flex items-center justify-center">
-                <img src={logo.src} alt={logo.name} className="max-h-8 w-auto object-contain grayscale opacity-60" />
+                <img src={logo.src} alt={logo.name} loading="lazy" decoding="async" className="max-h-8 w-auto object-contain grayscale opacity-60" />
               </div>
             ))}
           </div>

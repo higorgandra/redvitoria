@@ -1,22 +1,29 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth"; // Lembre-se de proteger suas chaves em um ambiente de produção
 import { getFirestore, doc, updateDoc, increment, setDoc, collection, getDoc, getDocs, query, orderBy } from "firebase/firestore";
 
-// Your web app's Firebase configuration - Hardcoded for testing
+// Configuração do Firebase.
+//
+// Estes valores NÃO são segredo e não precisam ir para variáveis de ambiente:
+// numa aplicação web eles são obrigatoriamente entregues ao navegador, e a
+// `apiKey` do Firebase apenas identifica o projeto — ela não autentica
+// ninguém. Deixá-los no código é o comportamento documentado pelo Firebase.
+//
+// Quem de fato controla o acesso são as regras em `firestore.rules`, na raiz
+// do repositório. Se elas estiverem abertas, esconder estas linhas não protege
+// nada; se estiverem corretas, expô-las não causa dano.
 const firebaseConfig = {
-  apiKey: "AIzaSyBjJOtr6wCPn2CflxpP61mKuVjOlDDGQJc", // Lembre-se de proteger suas chaves em um ambiente de produção
+  apiKey: "AIzaSyBjJOtr6wCPn2CflxpP61mKuVjOlDDGQJc",
   authDomain: "red-vitoria.firebaseapp.com",
   projectId: "red-vitoria",
   storageBucket: "red-vitoria.firebasestorage.app",
   messagingSenderId: "930933617786",
   appId: "1:930933617786:web:1868a4f5b27d99a3d6f7c3"
 };
-const app = initializeApp(firebaseConfig);
+// `app` e exportado para que firebaseAuth.js reaproveite a mesma instancia.
+export const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
-export const auth = getAuth(app);
-export const provider = new GoogleAuthProvider();
 
 /**
  * Incrementa um contador de métrica no Firestore.

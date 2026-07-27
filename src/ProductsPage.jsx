@@ -632,7 +632,7 @@ export default function ProductsPage() {
                 <td className="p-3">
                   <div className="flex items-center gap-3">
                     {product.image ? (
-                      <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded" />
+                      <img src={product.image} loading="lazy" decoding="async" alt={product.name} className="w-12 h-12 object-cover rounded" />
                     ) : (
                       <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-400">
                         <ImageIcon size={20} />
@@ -773,7 +773,7 @@ export default function ProductsPage() {
                   {/* Image Preview */}
                   {currentData.image && (
                     <div className="mt-2">
-                      <img src={currentData.image} alt="Preview" className="w-20 h-20 object-cover rounded border bg-gray-50" onError={(e) => e.target.style.display = 'none'} />
+                      <img src={currentData.image} loading="lazy" decoding="async" alt="Preview" className="w-20 h-20 object-cover rounded border bg-gray-50" onError={(e) => e.target.style.display = 'none'} />
                     </div>
                   )}
                   {!isAdForm && (

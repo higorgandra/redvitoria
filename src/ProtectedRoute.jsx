@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { auth } from './firebase';
+import { auth } from './firebaseAuth';
 import { signOut } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
 

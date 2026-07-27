@@ -223,9 +223,11 @@ const ProductCard = ({ product, cart, brandColors, onAddToCart, isHighlighted, c
       >
         <div className="relative aspect-square overflow-hidden rounded-t-lg">
           <div className="w-full h-full bg-gray-100">
-            <img 
-              src={product.image} 
-              alt={product.name} 
+            <img
+              src={product.image}
+              alt={product.name}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-in-out"
             />
           </div>

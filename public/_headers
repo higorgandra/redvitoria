@@ -1,0 +1,36 @@
+# Cabeçalhos do Cloudflare Pages.
+# O arquivo é copiado para a raiz do site no build (fica em public/).
+
+# Os arquivos em /assets/ têm o hash do conteúdo no nome, ou seja, mudou o
+# conteúdo, mudou a URL. São imutáveis por construção e podem ser cacheados
+# para sempre. Sem esta regra o Cloudflare serve tudo com
+# `max-age=0, must-revalidate`, o que força uma revalidação a cada visita.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*
+  # Impede que o site seja embutido em um iframe de terceiros (clickjacking).
+  X-Frame-Options: DENY
+  # Obriga HTTPS em visitas futuras.
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  # Desliga APIs que o site não usa.
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  # Reforça os dois que o Cloudflare já envia por padrão.
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+  # A CSP está em modo somente-relatório de propósito. Ela não pôde ser
+  # validada num navegador real antes do deploy, e uma diretiva errada aqui
+  # derruba a loja inteira em vez de degradar. Neste modo o navegador reporta
+  # violações no console sem bloquear nada.
+  #
+  # COMO ATIVAR: abra o site (home, produto, carrinho, /social e o /dashboard
+  # logado), confira se o console não acusa violação e, se estiver limpo,
+  # renomeie o cabeçalho abaixo para `Content-Security-Policy`.
+  #
+  # `unsafe-inline` em script-src é necessário porque o gtag do index.html e o
+  # JSON-LD injetado pelo App.jsx são scripts inline. Isso enfraquece a
+  # proteção contra XSS, mas a diretiva ainda bloqueia scripts vindos de
+  # domínios fora da lista. `img-src https:` é aberto porque as fotos dos
+  # produtos são URLs arbitrárias cadastradas no painel.
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://red-vitoria.firebaseapp.com; frame-src https://red-vitoria.firebaseapp.com https://apis.google.com; base-uri 'self'; form-action 'self' https://wa.me; frame-ancestors 'none'; object-src 'none'

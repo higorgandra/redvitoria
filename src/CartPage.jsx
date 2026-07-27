@@ -113,7 +113,7 @@ const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
               <ul className="divide-y divide-gray-200">
                 {cart.map(item => (
                   <li key={item.id} className="flex py-6 items-center">
-                    <img src={item.image} alt={item.name} className="w-24 h-24 object-cover rounded-md" />
+                    <img src={item.image} alt={item.name} loading="lazy" decoding="async" className="w-24 h-24 object-cover rounded-md" />
                     <div className="ml-4 flex-1 flex flex-col">
                       <div>
                         <div className="flex justify-between text-base font-medium text-gray-900">
