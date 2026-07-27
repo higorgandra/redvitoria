@@ -498,7 +498,7 @@ const HomePage = ({ cart, addToCart }) => {
           <div className="max-w-7xl mx-auto px-4 flex flex-col items-center text-center mb-8">
             <a href="#home" onClick={(e) => handleNavClick(e, '#home')} className="cursor-pointer">
               <div>
-                <h2 className="text-xl font-black text-gray-900">RED<span className="text-[#B22222]">VITORIA</span></h2>
+                <h2 className="text-xl font-black text-gray-900"><span className="text-[#8B0000]">VITÓRIA</span></h2>
                 <p className="text-sm text-gray-500 mt-1">Sua loja de pronta entrega em Salvador.</p>
               </div>
             </a>

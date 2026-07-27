@@ -75,7 +75,7 @@ const LoginPage = () => {
             <ShoppingBag size={32} strokeWidth={2.5} />
           </div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">
-            RED<span className="text-[#8B0000]">VITORIA</span>
+            <span className="text-[#8B0000]">VITÓRIA</span>
           </h1>
           <p className="text-gray-500 mt-1">Acesso ao Painel Administrativo</p>
         </div>

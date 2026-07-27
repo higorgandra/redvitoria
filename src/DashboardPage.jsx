@@ -22,7 +22,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                     </div>
                     <div>
                         <h1 className="text-xl font-black text-gray-900 tracking-tight">
-                            RED<span className="text-[#8B0000]">VITORIA</span>
+                            <span className="text-[#8B0000]">VITÓRIA</span>
                         </h1>
                         <span className="text-[9px] font-bold text-gray-400 tracking-widest uppercase block -mt-1">
                             Painel Admin

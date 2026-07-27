@@ -82,7 +82,7 @@ const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
               </div>
               <div>
                 <h1 className="text-2xl font-black text-gray-900 tracking-tight">
-                  RED<span className="text-[#8B0000]">VITORIA</span>
+                  <span className="text-[#8B0000]">VITÓRIA</span>
                 </h1>
               </div>
             </Link>
