@@ -19,8 +19,13 @@ const Header = ({ cart }) => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="relative flex items-center justify-center h-20">
                     {/* Ícone de Links */}
-                    <div className="absolute left-0">
-                        <Link to="/social" className="relative p-2 hover:bg-[#B22222]/10 rounded-full transition group">
+                    {/* O wrapper precisa do `flex` e o link do `inline-flex`: o
+                        Preflight do Tailwind deixa o <svg> como `display: block`,
+                        e um bloco dentro de um <a> inline quebra a caixa em
+                        fragmentos — o fundo do hover pintaria só o padding, numa
+                        faixa estreita e alta em vez do círculo. */}
+                    <div className="absolute left-0 flex items-center">
+                        <Link to="/social" className="relative inline-flex items-center justify-center p-2 hover:bg-[#B22222]/10 rounded-full transition group">
                             <InstagramIcon className="text-gray-700 group-hover:text-[#8B0000] transition" />
                         </Link>
                     </div>
@@ -36,7 +41,7 @@ const Header = ({ cart }) => {
 
                     {/* Ícone do Carrinho */}
                     <div className="absolute right-0 flex items-center">
-                        <Link to="/carrinho" className="relative p-2 hover:bg-[#B22222]/10 rounded-full transition group">
+                        <Link to="/carrinho" className="relative inline-flex items-center justify-center p-2 hover:bg-[#B22222]/10 rounded-full transition group">
                             <ShoppingBag className="text-gray-700 group-hover:text-[#8B0000] transition" />
                             {cartItemCount > 0 && (
                                 <span className="absolute top-0 right-0 bg-[#B22222] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold transform -translate-y-1/2 translate-x-1/2 animate-float">

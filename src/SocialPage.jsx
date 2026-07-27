@@ -32,7 +32,7 @@ const mainLinks = [
   {
     icon: <Instagram size={20} />,
     title: 'Meu Instagram',
-    url: 'https://www.instagram.com/consultoravitoriamgandra',
+    url: 'https://www.instagram.com/vitoriamotagandra_',
     isInternal: false,
   },
 ];
@@ -85,11 +85,11 @@ const SocialPage = () => {
         />
         <h1 className="text-2xl font-bold text-gray-900">
           <a 
-            href="https://www.instagram.com/consultoravitoriamgandra" 
+            href="https://www.instagram.com/vitoriamotagandra_" 
             target="_blank" 
             rel="noopener noreferrer"
             className="transition-colors hover:text-[#8B0000]"
-          >@consultoravitoriamgandra</a>
+          >@vitoriamotagandra_</a>
         </h1>
         <p className="text-gray-600 mt-2 text-center">Pronta entrega de Produtos de Beleza em Salvador/BA</p>
 

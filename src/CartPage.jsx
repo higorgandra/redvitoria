@@ -180,22 +180,6 @@ const CartPage = ({ cart, updateQuantity, removeFromCart, clearCart }) => {
                     <span className="font-medium text-green-600">Grátis</span>
                   </div>
                 </div>
-                {/* Campo de Cupom de Desconto */}
-                <div className="mt-6 pt-4 border-t border-dashed">
-                  <label htmlFor="coupon" className="text-sm font-medium text-gray-700 mb-2 block">
-                    Cupom de desconto
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      id="coupon"
-                      name="coupon"
-                      placeholder="Insira seu cupom"
-                      className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8B0000]/50"
-                    />
-                    <button type="button" className="px-4 py-2 bg-gray-800 text-white text-sm font-semibold rounded-lg hover:bg-black transition-colors">Aplicar</button>
-                  </div>
-                </div>
                 {/* Campo de Nome do Cliente */}
                 <div className="mt-6 pt-4 border-t">
                   <label htmlFor="customerName" className="text-sm font-medium text-gray-700 mb-2 block">
