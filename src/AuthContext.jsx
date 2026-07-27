@@ -12,6 +12,13 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Conclui o fluxo de signInWithRedirect (usado no Safari/iOS, onde o
+        // popup é bloqueado). Precisa ser chamado no carregamento da página
+        // para o Firebase trocar o retorno do redirect por uma sessão.
+        getRedirectResult(auth).catch((error) => {
+            console.error("Erro ao concluir o login por redirecionamento:", error);
+        });
+
         // onAuthStateChanged é a única fonte da verdade. Ele é acionado
         // após o login por redirecionamento ser concluído e também em
         // recarregamentos de página, lendo o estado do cache.
@@ -25,7 +32,7 @@ export const AuthProvider = ({ children }) => {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-screen bg-white">
+            <div className="flex justify-center items-center h-screen-dynamic bg-white">
                 <Loader2 className="animate-spin text-[#8B0000]" size={48} />
             </div>
         );

@@ -2,46 +2,62 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, provider } from './firebase'; // Importaremos do firebase.js
 import { useAuth } from './AuthContext';
-import { signInWithPopup, signOut } from "firebase/auth";
+import { signInWithPopup, signInWithRedirect, signOut } from "firebase/auth";
 import { ShoppingBag, Loader2 } from 'lucide-react';
+import { useBodyScrollLock } from './useBodyScrollLock';
+
+const ADMIN_UID = "JC6P8EQrLBOc9fzKm3XdXkKGb0i1";
+
+// O Safari do iOS bloqueia o popup do Firebase (e o ITP impede a troca de
+// storage entre a janela do popup e a original, então mesmo quando o popup
+// abre o login não conclui). Nesses navegadores usamos o fluxo de redirect,
+// que o AuthContext finaliza com getRedirectResult ao voltar para a página.
+const prefersRedirectAuth = () => {
+  const ua = navigator.userAgent;
+  const isIOS = /iP(hone|ad|od)/.test(ua)
+    // iPadOS 13+ se apresenta como macOS; o toque desempata.
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
+  return isIOS || isSafari;
+};
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [isLoggingIn, setIsLoggingIn] = useState(false); // Para o estado do botão
   
-  // Efeito para bloquear o scroll do body enquanto a página de login estiver visível
-  useEffect(() => {
-    document.body.classList.add('overflow-hidden');
-
-    // Função de limpeza para remover a classe quando o componente for desmontado
-    return () => {
-      document.body.classList.remove('overflow-hidden');
-    };
-  }, []); // Array vazio garante que o efeito rode apenas na montagem e desmontagem
+  // Bloqueia o scroll do body enquanto a página de login estiver visível.
+  useBodyScrollLock(true);
 
   // Efeito para redirecionar se o admin já estiver logado
   useEffect(() => {
-    const ADMIN_UID = "JC6P8EQrLBOc9fzKm3XdXkKGb0i1";
-    if (currentUser && currentUser.uid === ADMIN_UID) {
+    if (!currentUser) return;
+
+    if (currentUser.uid === ADMIN_UID) {
       // Se o usuário do contexto for o admin, redireciona imediatamente.
       navigate('/dashboard', { replace: true });
+      return;
     }
+
+    // Conta sem permissão. Este caminho também cobre o fluxo de redirect,
+    // em que a checagem não pode acontecer dentro de handleGoogleLogin
+    // porque a página é recarregada antes de o login retornar.
+    alert("Acesso restrito. Esta conta não tem permissão para entrar no painel.");
+    signOut(auth);
   }, [currentUser, navigate]);
 
   const handleGoogleLogin = async () => {
     setIsLoggingIn(true);
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      const ADMIN_UID = "JC6P8EQrLBOc9fzKm3XdXkKGb0i1";
-
-      if (user.uid !== ADMIN_UID) {
-        // Se não for o admin, exibe o alerta e faz o logout.
-        alert("Acesso restrito. Esta conta não tem permissão para entrar no painel.");
-        await signOut(auth);
+      if (prefersRedirectAuth()) {
+        // Sai da página; o resultado é tratado pelo AuthContext no retorno e
+        // a validação do UID acontece no useEffect acima.
+        await signInWithRedirect(auth, provider);
+        return;
       }
-      // Se for o admin, o useEffect acima cuidará do redirecionamento para o dashboard.
+
+      await signInWithPopup(auth, provider);
+      // O useEffect acima cuida do redirecionamento e da checagem de permissão.
 
     } catch (error) {
       console.error("Erro ao fazer login com o Google:", error);
@@ -52,7 +68,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-start pt-20 font-sans">
+    <div className="min-h-screen-dynamic bg-white flex flex-col items-center justify-start pt-20 font-sans">
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-2xl">
         <div className="flex flex-col items-center">
           <div className="bg-[#8B0000] text-white p-3 rounded-lg mb-4 transform -rotate-6">

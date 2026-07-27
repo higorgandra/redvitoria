@@ -21,7 +21,7 @@ const ProtectedRoute = ({ children }) => {
     // 2. Enquanto o AuthContext estiver carregando, exibe uma tela de loading.
     // Isso impede qualquer redirecionamento prematuro.
     if (loading) {
-        return <div className="flex justify-center items-center h-screen bg-white"><Loader2 className="animate-spin text-[#8B0000]" size={48} /></div>;
+        return <div className="flex justify-center items-center h-screen-dynamic bg-white"><Loader2 className="animate-spin text-[#8B0000]" size={48} /></div>;
     }
 
     // 3. Após o carregamento, se o usuário não for o admin, redireciona para o login.

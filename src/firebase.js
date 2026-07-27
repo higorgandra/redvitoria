@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth"; // Lembre-se de proteger suas chaves em um ambiente de produção
-import { getFirestore, doc, updateDoc, increment, setDoc, collection, addDoc, serverTimestamp, getDoc, getDocs, query, orderBy } from "firebase/firestore";
+import { getFirestore, doc, updateDoc, increment, setDoc, collection, getDoc, getDocs, query, orderBy } from "firebase/firestore";
 
 // Your web app's Firebase configuration - Hardcoded for testing
 const firebaseConfig = {
@@ -48,36 +48,12 @@ export const incrementMetric = async (metricName) => {
   }
 };
 
-/**
- * Registra uma visita ao site com informações de geolocalização do usuário.
- * Utiliza uma API externa para obter cidade e país a partir do IP.
- */
-export const trackVisit = async () => {
-  // Evita rastrear múltiplas visitas na mesma sessão de navegação
-  if (sessionStorage.getItem('visitTracked')) {
-    return;
-  }
-
-  try {
-    const response = await fetch('http://ip-api.com/json/?fields=country,city');
-    if (!response.ok) {
-      throw new Error('A resposta da API de geolocalização não foi OK.');
-    }
-    const data = await response.json();
-
-    const visitsCollectionRef = collection(db, 'visits');
-    await addDoc(visitsCollectionRef, {
-      city: data.city || 'Unknown',
-      country: data.country || 'Unknown',
-      timestamp: serverTimestamp()
-    });
-
-    // Marca que a visita já foi registrada nesta sessão
-    sessionStorage.setItem('visitTracked', 'true');
-  } catch (error) {
-    console.error("Erro ao registrar visita:", error);
-  }
-};
+// `trackVisit` foi removida: buscava geolocalização em http://ip-api.com
+// (HTTP puro numa página HTTPS), o que é bloqueado como conteúdo misto por
+// qualquer navegador moderno, e acessava sessionStorage sem proteção. Nunca
+// chegou a ser chamada — o registro de visitas vive em App.jsx. O plano
+// gratuito do ip-api.com não oferece HTTPS, então reativar exigiria outro
+// provedor de geolocalização.
 
 /**
  * Busca todos os dados de métricas do Firestore, incluindo interações e visitas.

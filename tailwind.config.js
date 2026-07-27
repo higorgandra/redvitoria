@@ -2,6 +2,9 @@
 export default {
   content: [
     "./index.html",
+    // Header.jsx fica na raiz do projeto (fora de src/), por isso precisa
+    // deste glob — sem ele o Tailwind não gera as classes usadas só nele.
+    "./*.{js,jsx}",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {

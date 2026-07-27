@@ -11,6 +11,7 @@ import ProtectedRoute from './ProtectedRoute.jsx';
 import SocialPage from './SocialPage.jsx'; // Importar a nova página
 import { AuthProvider } from './AuthContext.jsx';
 import { db } from './firebase';
+import { safeSessionStorage } from './safeStorage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const ScrollToTop = () => {
@@ -32,14 +33,14 @@ const App = () => {
   useEffect(() => {
     const recordVisit = async () => {
       // Verifica se já visitou nesta sessão (evita contar F5 como nova visita)
-      const hasVisited = sessionStorage.getItem('visit_recorded');
+      const hasVisited = safeSessionStorage.get('visit_recorded');
       if (!hasVisited) {
         try {
           await addDoc(collection(db, 'visits'), {
             timestamp: serverTimestamp(),
             userAgent: navigator.userAgent // Salva info do navegador (útil para saber se é mobile/desktop)
           });
-          sessionStorage.setItem('visit_recorded', 'true');
+          safeSessionStorage.set('visit_recorded', 'true');
         } catch (error) {
           console.error("Erro ao registrar visita:", error);
         }

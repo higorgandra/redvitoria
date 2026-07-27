@@ -114,7 +114,7 @@ const ProductDetailPage = ({ cart, addToCart }) => {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-screen bg-gray-50">
+            <div className="flex justify-center items-center h-screen-dynamic bg-gray-50">
                 <Loader2 className="animate-spin text-[#8B0000]" size={48} />
             </div>
         );
@@ -142,13 +142,13 @@ const ProductDetailPage = ({ cart, addToCart }) => {
     const isAddToCartDisabled = isOutOfStock || isStockLimitReached;
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen-dynamic bg-gray-50">
             {/* Barra de Navegação Adicionada */}
             <Header cart={cart} />
 
             {/* Notificação */}
             {showNotification && (
-                <Link to="/carrinho" className="fixed bottom-20 inset-x-4 md:top-28 md:bottom-auto md:inset-x-auto md:right-6 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 flex items-center justify-center md:justify-start gap-2 cursor-pointer animate-fade-in-up">
+                <Link to="/carrinho" className="fixed bottom-20 mb-[env(safe-area-inset-bottom)] md:mb-0 inset-x-4 md:top-28 md:bottom-auto md:inset-x-auto md:right-6 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 flex items-center justify-center md:justify-start gap-2 cursor-pointer">
                     <Check size={20} />
                     Adicionado à sacola!
                 </Link>
@@ -323,7 +323,7 @@ const ProductDetailPage = ({ cart, addToCart }) => {
             <button
                 onClick={handleAddToCart}
                 disabled={isAddToCartDisabled}
-                className={`md:hidden fixed bottom-0 left-0 right-0 w-full font-bold h-16 px-4 transition-colors duration-300 flex items-center justify-center gap-2 text-base lowercase shadow-[0_-4px_12px_rgba(0,0,0,0.15)] z-30
+                className={`md:hidden fixed bottom-0 left-0 right-0 w-full font-bold min-h-[4rem] px-safe pb-safe transition-colors duration-300 flex items-center justify-center gap-2 text-base lowercase shadow-[0_-4px_12px_rgba(0,0,0,0.15)] z-30
                     ${isAddToCartDisabled
                         ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                         : 'bg-[#8B0000] text-white hover:bg-[#650000]'

@@ -8,6 +8,7 @@ import FilterModal from './FilterModal'; // Importar o novo componente
 import ProductCard from './ProductCard';
 import { db } from './firebase';
 import Header from '/Header.jsx'; // 1. Importar o novo Header
+import { useBodyScrollLock } from './useBodyScrollLock';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 
 const brandColors = {
@@ -105,18 +106,10 @@ const HomePage = ({ cart, addToCart }) => {
       }
     };
 
-    // Efeito para bloquear o scroll do body quando um modal/menu está aberto
-    useEffect(() => {
-      if (isMenuOpen || activeModal) {
-        document.body.classList.add('overflow-hidden');
-      } else {
-        document.body.classList.remove('overflow-hidden');
-      }
-      // Função de limpeza para garantir que o scroll seja reativado se o componente for desmontado
-      return () => {
-        document.body.classList.remove('overflow-hidden');
-      };
-    }, [isMenuOpen, activeModal]);
+    // Bloqueia o scroll do body quando um modal/menu está aberto.
+    // O hook usa `position: fixed` em vez de `overflow: hidden` porque o
+    // Safari do iOS ignora o segundo e deixa o fundo rolar atrás do modal.
+    useBodyScrollLock(Boolean(isMenuOpen || activeModal));
 
     // Gerencia a restauração de página/scroll com segurança:
     // - Sincroniza `currentPage` com a `location.state.page` (quando presente) ou com a query `?page=`.
@@ -341,7 +334,7 @@ const HomePage = ({ cart, addToCart }) => {
     const copyrightYear = startYear === currentYear ? startYear : `${startYear} - ${currentYear}`;
   
     return (
-      <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
+      <div className="min-h-screen-dynamic bg-gray-50 font-sans text-gray-800">
 
         {/* Top Announcement Bar - Oculto temporariamente
           <div className="bg-[#B22222] text-white py-2 px-4 text-center text-xs font-semibold tracking-wide hidden md:block">
@@ -353,7 +346,7 @@ const HomePage = ({ cart, addToCart }) => {
         */}
         
         {showNotification && (
-          <Link to="/carrinho" className="fixed bottom-4 inset-x-4 md:top-28 md:bottom-auto md:inset-x-auto md:right-6 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 flex items-center justify-center md:justify-start gap-2 cursor-pointer">
+          <Link to="/carrinho" className="fixed bottom-4 mb-[env(safe-area-inset-bottom)] md:mb-0 inset-x-4 md:top-28 md:bottom-auto md:inset-x-auto md:right-6 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 flex items-center justify-center md:justify-start gap-2 cursor-pointer">
             <Check size={20} />
             Adicionado à sacola!
           </Link>

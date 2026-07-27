@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, MessageCircle, Send, RotateCcw, TrendingUp, DollarSign, AlertTriangle, Users } from 'lucide-react';
 import { db } from './firebase';
+import { safeSessionStorage } from './safeStorage';
 import { doc, onSnapshot, setDoc, collection, getDocs, getCountFromServer, writeBatch } from 'firebase/firestore';
 
 const StatCard = ({ icon, title, value, description }) => (
@@ -108,7 +109,7 @@ const DashboardHome = () => {
                 await batch.commit();
 
                 setTotalVisits(0); // Atualiza o estado local imediatamente
-                sessionStorage.removeItem('visit_recorded'); // Permite que o admin registre uma nova visita ao testar
+                safeSessionStorage.remove('visit_recorded'); // Permite que o admin registre uma nova visita ao testar
                 
                 alert("Métricas resetadas com sucesso!");
             } catch (error) {

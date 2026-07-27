@@ -75,7 +75,7 @@ const SocialPage = () => {
   }, []); // Array vazio garante que o efeito rode apenas na montagem e desmontagem
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-800 flex flex-col items-center p-4">
+    <div className="min-h-screen-dynamic bg-gray-50 font-sans text-gray-800 flex flex-col items-center p-4">
       <main className="w-full max-w-lg mx-auto flex flex-col items-center pt-12">
         {/* Profile Header */}
         <img
