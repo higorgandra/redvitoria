@@ -19,7 +19,7 @@ const LogoSlider = () => {
           Marcas que você ama
         </h3>
         <div className="relative overflow-hidden whitespace-nowrap [mask-image:_linear-gradient(to_right,transparent_0,_black_128px,_black_calc(100%-128px),transparent_100%)]">
-          <div className="flex animate-[slide_30s_linear_infinite]">
+          <div className="flex w-max animate-[slide_30s_linear_infinite]">
             {/* Renderiza o primeiro conjunto de logos */}
             {logos.map((logo, index) => (
               <div key={`logo1-${index}`} className="flex-shrink-0 w-48 mx-8 flex items-center justify-center">

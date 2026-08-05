@@ -14,8 +14,10 @@ export default {
       },
       keyframes: {
         slide: {
+          // Desloca exatamente a largura de um conjunto de logos (a trilha tem
+          // dois conjuntos e w-max), fazendo o reinício coincidir com o início.
           'from': { transform: 'translateX(0)' },
-          'to': { transform: 'translateX(-100%)' },
+          'to': { transform: 'translateX(-50%)' },
         }
       },
       animation: {
