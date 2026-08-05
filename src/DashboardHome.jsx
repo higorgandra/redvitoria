@@ -99,16 +99,19 @@ const DashboardHome = () => {
                     heroWhatsappClicks: 0
                 });
 
-                // 2. Resetar coleção de visitas (deletar todos os documentos)
+                // 2. Resetar coleção de visitas (deletar todos os documentos).
+                // O writeBatch aceita no máximo 500 operações, então os
+                // documentos são apagados em lotes sequenciais desse tamanho.
                 const visitsColl = collection(db, 'visits');
                 const visitsSnapshot = await getDocs(visitsColl);
-                
-                // Deletar em lote (batch)
-                const batch = writeBatch(db);
-                visitsSnapshot.docs.forEach((doc) => {
-                    batch.delete(doc.ref);
-                });
-                await batch.commit();
+                const visitDocs = visitsSnapshot.docs;
+                for (let i = 0; i < visitDocs.length; i += 500) {
+                    const batch = writeBatch(db);
+                    visitDocs.slice(i, i + 500).forEach((doc) => {
+                        batch.delete(doc.ref);
+                    });
+                    await batch.commit();
+                }
 
                 setTotalVisits(0); // Atualiza o estado local imediatamente
                 safeSessionStorage.remove('visit_recorded'); // Permite que o admin registre uma nova visita ao testar

@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, increment, setDoc, collection, getDoc, getDocs, query, orderBy } from "firebase/firestore";
+import { getFirestore, doc, increment, setDoc } from "firebase/firestore";
 
 // Configuração do Firebase.
 //
@@ -49,36 +49,3 @@ export const incrementMetric = async (metricName) => {
 // chegou a ser chamada — o registro de visitas vive em App.jsx. O plano
 // gratuito do ip-api.com não oferece HTTPS, então reativar exigiria outro
 // provedor de geolocalização.
-
-/**
- * Busca todos os dados de métricas do Firestore, incluindo interações e visitas.
- * @returns {Promise<{interactions: object, visits: Array<object>}>} Uma promessa que resolve para um objeto com as métricas.
- */
-export const getMetrics = async () => {
-  try {
-    // Busca as métricas de interação (cliques)
-    const metricsRef = doc(db, 'metrics', 'userInteractions');
-    const metricsSnap = await getDoc(metricsRef);
-    const interactions = metricsSnap.exists() ? metricsSnap.data() : {};
-
-    // Busca os registros de visitas
-    const visitsCollectionRef = collection(db, 'visits');
-    const q = query(visitsCollectionRef, orderBy('timestamp', 'desc'));
-    const visitsSnap = await getDocs(q);
-    
-    const visits = [];
-    visitsSnap.forEach((doc) => {
-      visits.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-
-    return { interactions, visits };
-
-  } catch (error) {
-    console.error("Erro ao buscar métricas:", error);
-    // Retorna um objeto vazio em caso de erro para não quebrar a aplicação
-    return { interactions: {}, visits: [] };
-  }
-};

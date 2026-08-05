@@ -1,14 +1,14 @@
 import React from 'react';
 
-// Logos das marcas parceiras
+// Logos das marcas parceiras, servidas do próprio site (public/logos).
 const logos = [
-  { name: 'Natura', src: 'https://i.postimg.cc/W3gxtx6D/natu.png' },
-  { name: 'O Boticário', src: 'https://i.postimg.cc/RFhzFgpJ/oboti.png' },
-  { name: 'Avon', src: 'https://gkpb.com.br/wp-content/uploads/2021/01/novo-logo-avon-png.png' },
-  { name: 'Quem disse, berenice?', src: 'https://i.postimg.cc/B65vfrhb/quempng.png' },
-  { name: 'O.U.I', src: 'https://i.postimg.cc/gJy0bCMx/ouipng.png' },
-  { name: 'L`Occitane au Brésil', src: 'https://i.postimg.cc/V69NPx7t/locpng.png' },
-  { name: 'Eudora', src: 'https://i.postimg.cc/j56jYp8W/eudorapng.png' },
+  { name: 'Natura', src: '/logos/natu.png' },
+  { name: 'O Boticário', src: '/logos/oboti.png' },
+  { name: 'Avon', src: '/logos/novo-logo-avon-png.png' },
+  { name: 'Quem disse, berenice?', src: '/logos/quempng.png' },
+  { name: 'O.U.I', src: '/logos/ouipng.png' },
+  { name: 'L`Occitane au Brésil', src: '/logos/locpng.png' },
+  { name: 'Eudora', src: '/logos/eudorapng.png' },
 ];
 
 const LogoSlider = () => {

@@ -18,6 +18,15 @@ import { collection, getDocs } from 'firebase/firestore';
 // devolve zero resultados.
 const isDisponivel = (p) => p.status !== 'Arquivado' && (Number(p.stock) || 0) > 0;
 
+// Cache de módulo da coleção de produtos. A HomePage desmonta ao abrir um
+// produto e remonta na volta — sem o cache, cada volta relia a coleção
+// inteira do Firestore (latência + custo de leitura por documento). O cache
+// vive enquanto a aba estiver aberta e expira sozinho para não servir
+// estoque velho em sessões longas.
+const PRODUCTS_CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+let productsCache = null;
+let productsCacheAt = 0;
+
 const brands = [
   { value: 'all', label: 'Todas' },
   { value: 'natura', label: 'Natura' },
@@ -75,14 +84,24 @@ const HomePage = ({ cart, addToCart }) => {
 
     useEffect(() => {
       const fetchProducts = async () => {
+        // Reaproveita o cache de módulo enquanto ele for recente (ver
+        // comentário na declaração, no topo do arquivo).
+        if (productsCache && Date.now() - productsCacheAt < PRODUCTS_CACHE_TTL) {
+          setAllProducts(productsCache);
+          setProducts(productsCache.filter(p => p.status !== undefined && p.status !== 'Arquivado'));
+          setLoading(false);
+          return;
+        }
         setLoading(true);
         try {
-          // Uma única leitura da coleção por sessão. O filtro de arquivados era
-          // feito no servidor com `where("status", "!=", "Arquivado")`; aqui ele
-          // é reproduzido em memória. O `!=` do Firestore também descarta
-          // documentos sem o campo `status`, daí a checagem de `undefined`.
+          // O filtro de arquivados era feito no servidor com
+          // `where("status", "!=", "Arquivado")`; aqui ele é reproduzido em
+          // memória. O `!=` do Firestore também descarta documentos sem o
+          // campo `status`, daí a checagem de `undefined`.
           const snapshot = await getDocs(collection(db, 'products'));
           const productsList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+          productsCache = productsList;
+          productsCacheAt = Date.now();
           setAllProducts(productsList);
           setProducts(productsList.filter(p => p.status !== undefined && p.status !== 'Arquivado'));
         } catch (err) {

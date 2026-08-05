@@ -70,8 +70,7 @@ const App = () => {
       "@type": "HealthAndBeautyBusiness",
       "name": "RedVitoria Cosméticos",
       "description": "Sua loja de pronta entrega de cosméticos Avon, Natura e O Boticário em Salvador, BA. Viu, gostou, pegou. Sem espera.",
-      // TODO: Substitua pela URL completa da sua logo quando estiver online. Ex: "https://www.redvitoria.com.br/logo.png"
-      "image": "", 
+      "image": window.location.origin + "/favicon.svg",
       "address": {
         "@type": "PostalAddress",
         "addressLocality": "Salvador",

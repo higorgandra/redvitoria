@@ -3,7 +3,7 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!-- Adianta o handshake (DNS + TLS) dos domínios que o app procura logo
          no primeiro render: o Firestore, de onde vêm os produtos, e o host
          das imagens. Sem isto a conexão só começa depois que o JS executa. -->
@@ -13,7 +13,16 @@
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://i.postimg.cc" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>RedVitoria</title>
+    <title>RedVitoria — Cosméticos a Pronta Entrega em Salvador</title>
+    <meta name="description" content="Cosméticos Natura, Avon, O Boticário, Eudora e mais, a pronta entrega em Salvador. Pediu hoje, chegou hoje." />
+    <!-- Prévia do link ao compartilhar (WhatsApp, Instagram, etc.). Sem
+         og:image por enquanto: exige URL absoluta de uma imagem raster e o
+         site ainda não tem uma logo em PNG/JPG hospedada. -->
+    <meta property="og:title" content="RedVitoria — Cosméticos a Pronta Entrega em Salvador" />
+    <meta property="og:description" content="Cosméticos Natura, Avon, O Boticário, Eudora e mais, a pronta entrega em Salvador. Pediu hoje, chegou hoje." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://redvitoria.pages.dev/" />
+    <meta property="og:locale" content="pt_BR" />
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-3PFMJ2878F"></script>
     <script>

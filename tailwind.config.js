@@ -9,9 +9,6 @@ export default {
   ],
   theme: {
     extend: {
-      fontFamily: {
-        sans: ['Poppins', 'sans-serif'],
-      },
       keyframes: {
         slide: {
           // Desloca exatamente a largura de um conjunto de logos (a trilha tem

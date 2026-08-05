@@ -18,9 +18,13 @@ const whatsappUrl = `https://wa.me/5571992293834?text=${encodeURIComponent(whats
 const HeroSection = ({ products = [] }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-    // Filtra os produtos para criar a lista de imagens do carrossel
+    // Filtra os produtos para criar a lista de imagens do carrossel.
+    // Limitado a 5: todas as imagens ficam no viewport (o lazy loading não as
+    // adia), então cada produto a mais é um download competindo com a abertura
+    // da página.
     const carouselImages = products
         .filter(p => p.stock > 0 && p.image && p.status !== 'Anúncio')
+        .slice(0, 5)
         .map(p => ({ src: p.image, alt: p.name }));
 
     useEffect(() => {
