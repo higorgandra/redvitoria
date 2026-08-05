@@ -25,14 +25,14 @@ service cloud.firestore {
     }
 
     // Contadores de interacao. O site precisa incrementar sem login, entao a
-    // regra limita o estrago: so este documento, e so estes tres campos. Nao
+    // regra limita o estrago: so este documento, e so estes campos. Nao
     // da para criar campos novos nem gravar em outro lugar da colecao.
     match /metrics/userInteractions {
       allow read: if isAdmin();
       allow delete: if isAdmin();
       allow create, update: if isAdmin()
         || request.resource.data.keys().hasOnly(
-             ['addToCartClicks', 'whatsappClicks', 'adCardClicks']
+             ['addToCartClicks', 'whatsappClicks', 'adCardClicks', 'heroWhatsappClicks']
            );
     }
 

@@ -23,7 +23,8 @@ const DashboardHome = () => {
     const [metrics, setMetrics] = useState({
         addToCartClicks: 0,
         whatsappClicks: 0,
-        adCardClicks: 0, // Adiciona a nova métrica
+        adCardClicks: 0,
+        heroWhatsappClicks: 0,
     });
     const [loading, setLoading] = useState(true);
     const [inventoryStats, setInventoryStats] = useState({ totalValue: 0, lowStock: 0 });
@@ -43,7 +44,7 @@ const DashboardHome = () => {
                 }));
             } else {
                 console.log("⚠️ Documento de métricas não encontrado (ainda).");
-                setMetrics({ addToCartClicks: 0, whatsappClicks: 0, adCardClicks: 0 });
+                setMetrics({ addToCartClicks: 0, whatsappClicks: 0, adCardClicks: 0, heroWhatsappClicks: 0 });
             }
             setLoading(false);
         }, (error) => {
@@ -94,7 +95,8 @@ const DashboardHome = () => {
                 await setDoc(metricsRef, {
                     addToCartClicks: 0,
                     whatsappClicks: 0,
-                    adCardClicks: 0
+                    adCardClicks: 0,
+                    heroWhatsappClicks: 0
                 });
 
                 // 2. Resetar coleção de visitas (deletar todos os documentos)
@@ -145,9 +147,10 @@ const DashboardHome = () => {
             </div>
 
             <h3 className="text-lg font-bold text-gray-700 mb-4">Interações em Tempo Real</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard icon={<ShoppingBag size={24} className="text-gray-600" />} title="Cliques em 'Adicionar à Sacola'" value={loading ? '...' : metrics.addToCartClicks || 0} description="Total de interações no botão de adicionar produto." />
                 <StatCard icon={<MessageCircle size={24} className="text-gray-600" />} title="Cliques em 'Finalizar no WhatsApp'" value={loading ? '...' : metrics.whatsappClicks || 0} description="Total de interações no botão para finalizar via WhatsApp." />
+                <StatCard icon={<MessageCircle size={24} className="text-green-600" />} title="Cliques no WhatsApp da Hero" value={loading ? '...' : metrics.heroWhatsappClicks || 0} description="Cliques no botão 'Chamar no WhatsApp' do topo do site." />
                 <StatCard icon={<Send size={24} className="text-gray-600" />} title="Cliques no Catálogo (Anúncio)" value={loading ? '...' : metrics.adCardClicks || 0} description="Total de cliques no card de anúncio para o catálogo." />
             </div>
         </div>

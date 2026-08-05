@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, updateDoc, increment, setDoc, collection, getDoc, getDocs, query, orderBy } from "firebase/firestore";
+import { getFirestore, doc, increment, setDoc, collection, getDoc, getDocs, query, orderBy } from "firebase/firestore";
 
 // Configuração do Firebase.
 //
@@ -27,28 +27,16 @@ export const db = getFirestore(app);
 
 /**
  * Incrementa um contador de métrica no Firestore.
- * Cria o documento de métricas se ele não existir.
- * @param {'addToCartClicks' | 'whatsappClicks' | 'adCardClicks'} metricName O nome do campo a ser incrementado.
+ * O setDoc com merge cria o documento se ele não existir.
+ * @param {'addToCartClicks' | 'whatsappClicks' | 'adCardClicks' | 'heroWhatsappClicks'} metricName O nome do campo a ser incrementado.
  */
 export const incrementMetric = async (metricName) => {
   const metricsRef = doc(db, 'metrics', 'userInteractions');
   try {
-    // Tenta incrementar o valor.
-    await updateDoc(metricsRef, {
-      [metricName]: increment(1)
-    });
+    await setDoc(metricsRef, { [metricName]: increment(1) }, { merge: true });
   } catch (error) {
-    // Se o documento não existir, o updateDoc falhará.
-    // Então, criamos o documento com o valor inicial 1 para a métrica clicada.
-    if (error.code === 'not-found') {
-      console.log("Documento de métricas não encontrado. Criando um novo...");
-      try {
-        await setDoc(metricsRef, { 
-          [metricName]: 1 
-        });
-      } catch (set_error) {
-        console.error("Erro ao criar documento de métricas:", set_error);
-      }
+    if (error.code === 'permission-denied') {
+      console.warn("Métrica não registrada por falta de permissão. Verifique as Regras do Firestore.");
     } else {
       console.error("Erro ao incrementar métrica:", error);
     }

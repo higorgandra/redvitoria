@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Instagram, MapPin, Package } from 'lucide-react';
+import { incrementMetric } from './firebase';
 
 // Componente para o ícone personalizado do WhatsApp
 const WhatsAppIcon = ({ size = 24 }) => (
@@ -69,6 +70,7 @@ const HeroSection = ({ products = [] }) => {
                             href={whatsappUrl}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={() => incrementMetric('heroWhatsappClicks')}
                             className="flex items-center justify-center gap-3 w-full max-w-sm mx-auto bg-[#25D366] hover:bg-[#1EBE5D] text-white text-lg font-bold px-8 py-4 rounded-full shadow-lg shadow-green-500/30 transition-transform duration-300 ease-out transform hover:scale-[1.03]"
                         >
                             <WhatsAppIcon size={26} />
@@ -90,6 +92,7 @@ const HeroSection = ({ products = [] }) => {
                             href={whatsappUrl}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={() => incrementMetric('heroWhatsappClicks')}
                             className="inline-flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#1EBE5D] text-white text-lg font-bold px-10 py-4 rounded-full shadow-lg shadow-green-500/30 transition-transform duration-300 ease-out transform hover:scale-[1.03]"
                         >
                             <WhatsAppIcon size={26} />
