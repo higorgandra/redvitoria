@@ -50,6 +50,12 @@ service cloud.firestore {
       );
     }
 
+    // Caderneta de fiado: dados privados da administradora (nomes, telefones
+    // e dividas de clientes). Nenhum visitante le ou escreve.
+    match /fiados/{fiadoId} {
+      allow read, write: if isAdmin();
+    }
+
     // Qualquer colecao nao listada acima fica fechada.
     match /{document=**} {
       allow read, write: if false;

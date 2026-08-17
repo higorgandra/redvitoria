@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LayoutDashboard, Package, ChevronDown, Menu, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, NotebookPen, ChevronDown, Menu, LogOut } from 'lucide-react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { auth } from './firebaseAuth';
 import { signOut } from 'firebase/auth';
@@ -11,6 +11,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
     const menuItems = [
         { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard' },
         { icon: <Package size={20} />, label: 'Produtos', path: '/dashboard/produtos' },
+        { icon: <NotebookPen size={20} />, label: 'Caderneta', path: '/dashboard/caderneta' },
     ];
 
     return <>

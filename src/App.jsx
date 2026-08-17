@@ -17,6 +17,7 @@ const LoginPage = lazy(() => import('./LoginPage.jsx'));
 const DashboardPage = lazy(() => import('./DashboardPage.jsx'));
 const DashboardHome = lazy(() => import('./DashboardHome.jsx'));
 const ProductsPage = lazy(() => import('./ProductsPage.jsx'));
+const CadernetaPage = lazy(() => import('./CadernetaPage.jsx'));
 
 const RouteFallback = () => (
   <div className="flex justify-center items-center h-screen-dynamic bg-white">
@@ -145,6 +146,7 @@ const App = () => {
                 }>
                 <Route index element={<DashboardHome />} />
                 <Route path="produtos" element={<ProductsPage />} />
+                <Route path="caderneta" element={<CadernetaPage />} />
               </Route>
             </Route>
         </Routes>
