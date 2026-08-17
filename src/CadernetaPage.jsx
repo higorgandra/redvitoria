@@ -56,8 +56,13 @@ const initials = (name) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
+// Nome dos produtos de uma anotação, para busca e para textos (mensagem de
+// cobrança, modais). As entradas já chegam aqui normalizadas com `items`.
+const itemsLabel = (e) => (e.items || []).map((it) => it.name).filter(Boolean).join(' + ') || 'Sem produto';
+
 const emptyForm = () => ({
-  clientName: '', clientPhone: '', productName: '', amount: '',
+  clientName: '', clientPhone: '',
+  items: [{ name: '', amount: '' }],
   saleDate: todayStr(), dueDate: '', note: ''
 });
 
@@ -109,10 +114,17 @@ export default function CadernetaPage() {
     const unsubscribe = onSnapshot(collection(db, 'fiados'), (snap) => {
       const list = snap.docs.map((d) => {
         const data = d.data() || {};
+        const amount = Number(data.amount) || 0;
+        // Compat: anotações antigas guardavam um único produto em `productName`;
+        // as novas guardam a lista em `items`. Tudo vira `items` daqui em diante.
+        const items = Array.isArray(data.items) && data.items.length > 0
+          ? data.items.map((it) => ({ name: (it && it.name) || '', amount: Number(it && it.amount) || 0 }))
+          : [{ name: data.productName || '', amount }];
         return {
           id: d.id,
           ...data,
-          amount: Number(data.amount) || 0,
+          amount,
+          items,
           amountPaid: Number(data.amountPaid) || 0,
           payments: Array.isArray(data.payments) ? data.payments : [],
           status: data.status === 'pago' ? 'pago' : 'aberto',
@@ -190,7 +202,7 @@ export default function CadernetaPage() {
     const q = normalize(searchQuery);
     const map = new Map();
     entries.filter((e) => e.status === 'aberto').forEach((e) => {
-      if (q && !normalize(e.clientName).includes(q) && !normalize(e.productName).includes(q)) return;
+      if (q && !normalize(e.clientName).includes(q) && !normalize(itemsLabel(e)).includes(q)) return;
       const key = normalize(e.clientName) || 'sem-nome';
       if (!map.has(key)) {
         map.set(key, { key, name: e.clientName?.trim() || 'Sem nome', phone: e.clientPhone || '', entries: [], total: 0, overdueCount: 0 });
@@ -212,7 +224,7 @@ export default function CadernetaPage() {
     const q = normalize(searchQuery);
     return entries
       .filter((e) => e.status === 'pago')
-      .filter((e) => !q || normalize(e.clientName).includes(q) || normalize(e.productName).includes(q))
+      .filter((e) => !q || normalize(e.clientName).includes(q) || normalize(itemsLabel(e)).includes(q))
       .sort((a, b) => lastPaymentDate(b).localeCompare(lastPaymentDate(a)));
   }, [entries, searchQuery]);
 
@@ -238,8 +250,10 @@ export default function CadernetaPage() {
     setFormData({
       clientName: entry.clientName || '',
       clientPhone: entry.clientPhone || '',
-      productName: entry.productName || '',
-      amount: entry.amount ? String(entry.amount.toFixed(2)).replace('.', ',') : '',
+      items: entry.items.map((it) => ({
+        name: it.name,
+        amount: it.amount ? it.amount.toFixed(2).replace('.', ',') : '',
+      })),
       saleDate: entry.saleDate || todayStr(),
       dueDate: entry.dueDate || '',
       note: entry.note || '',
@@ -274,17 +288,67 @@ export default function CadernetaPage() {
     });
   };
 
+  const handleItemChange = (index, field, value) => {
+    setFormErrors((prev) => {
+      if (!prev[`item-${index}-${field}`] && !prev.items) return prev;
+      const next = { ...prev };
+      delete next[`item-${index}-${field}`];
+      delete next.items;
+      return next;
+    });
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.map((it, i) => (i === index ? { ...it, [field]: value } : it)),
+    }));
+  };
+
+  const addItemRow = () => {
+    setFormData((prev) => ({ ...prev, items: [...prev.items, { name: '', amount: '' }] }));
+  };
+
+  const removeItemRow = (index) => {
+    setFormData((prev) => ({ ...prev, items: prev.items.filter((_, i) => i !== index) }));
+  };
+
+  // Total da compra somado ao vivo enquanto os produtos são digitados.
+  const formItemsTotal = useMemo(() => {
+    return round2(formData.items.reduce((sum, it) => {
+      const v = parseMoney(it.amount);
+      return isNaN(v) ? sum : sum + v;
+    }, 0));
+  }, [formData.items]);
+
   const handleSaveEntry = async () => {
     const errors = {};
-    const amount = parseMoney(formData.amount);
     if (!formData.clientName.trim()) errors.clientName = 'Informe o nome da cliente.';
-    if (!formData.productName.trim()) errors.productName = 'Informe o produto.';
-    if (isNaN(amount) || amount <= 0) errors.amount = 'Informe um valor maior que zero.';
+
+    // Valida os produtos: linhas totalmente vazias (além da primeira) são
+    // ignoradas; as demais precisam de nome e valor maior que zero.
+    const cleanItems = [];
+    formData.items.forEach((it, i) => {
+      const name = (it.name || '').trim();
+      const value = parseMoney(it.amount);
+      const rowIsEmpty = !name && !String(it.amount ?? '').trim();
+      if (rowIsEmpty && formData.items.length > 1) return;
+      if (!name) errors[`item-${i}-name`] = true;
+      if (isNaN(value) || value <= 0) errors[`item-${i}-amount`] = true;
+      if (name && !isNaN(value) && value > 0) cleanItems.push({ name, amount: value });
+    });
+    if (Object.keys(errors).some((k) => k.startsWith('item-'))) {
+      errors.items = 'Preencha o nome e o valor de cada produto.';
+    } else if (cleanItems.length === 0) {
+      errors.items = 'Adicione pelo menos um produto.';
+    }
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
     }
+
+    const amount = round2(cleanItems.reduce((sum, it) => sum + it.amount, 0));
+    // `productName` continua sendo gravado (nomes juntos) por compatibilidade
+    // com anotações antigas e para manter o documento legível no console.
+    const productName = cleanItems.map((it) => it.name).join(' + ');
 
     setIsSaving(true);
     try {
@@ -294,7 +358,8 @@ export default function CadernetaPage() {
         await updateDoc(doc(db, 'fiados', editingEntry.id), {
           clientName: formData.clientName.trim(),
           clientPhone: formData.clientPhone.trim(),
-          productName: formData.productName.trim(),
+          items: cleanItems,
+          productName,
           amount,
           saleDate: formData.saleDate || todayStr(),
           dueDate: formData.dueDate || null,
@@ -307,7 +372,8 @@ export default function CadernetaPage() {
         await addDoc(collection(db, 'fiados'), {
           clientName: formData.clientName.trim(),
           clientPhone: formData.clientPhone.trim(),
-          productName: formData.productName.trim(),
+          items: cleanItems,
+          productName,
           amount,
           amountPaid: 0,
           payments: [],
@@ -405,7 +471,7 @@ export default function CadernetaPage() {
   };
 
   const buildChargeMessage = (group) => {
-    const lines = group.entries.map((e) => `• ${e.productName} — ${formatBRL(remainingOf(e))}`);
+    const lines = group.entries.map((e) => `• ${itemsLabel(e)} — ${formatBRL(remainingOf(e))}`);
     return `Oi, ${firstName(group.name)}! Tudo bem? 😊\n\nPassando só pra lembrar com carinho dos valores anotados na caderneta:\n\n${lines.join('\n')}\n\nTotal: ${formatBRL(group.total)}\n\nQualquer coisa é só me chamar! 💕`;
   };
 
@@ -533,7 +599,14 @@ export default function CadernetaPage() {
                             <div key={entry.id} className="p-3 sm:p-4">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <p className="font-medium text-gray-800 break-words">{entry.productName}</p>
+                                  {entry.items.map((it, i) => (
+                                    <p key={i} className="font-medium text-gray-800 break-words">
+                                      {it.name}
+                                      {entry.items.length > 1 && (
+                                        <span className="text-xs font-normal text-gray-400"> · {formatBRL(it.amount)}</span>
+                                      )}
+                                    </p>
+                                  ))}
                                   <p className="text-xs text-gray-500 mt-0.5">
                                     Comprado em {formatDate(entry.saleDate)}
                                     {entry.dueDate && <> · combinado p/ {formatDate(entry.dueDate)}</>}
@@ -594,7 +667,7 @@ export default function CadernetaPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-800 truncate">{entry.clientName || 'Sem nome'}</p>
-                    <p className="text-sm text-gray-600 break-words">{entry.productName}</p>
+                    <p className="text-sm text-gray-600 break-words">{itemsLabel(entry)}</p>
                     <p className="text-xs text-gray-500 mt-1">
                       Comprado em {formatDate(entry.saleDate)}
                       {entry.payments.length > 0 && <> · quitado em {formatDate(lastPaymentDate(entry))}</>}
@@ -651,35 +724,56 @@ export default function CadernetaPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700">Produto <span className="text-red-500">*</span></label>
-                <input
-                  type="text" name="productName" list="caderneta-produtos" value={formData.productName} onChange={handleFormChange}
-                  className={`w-full p-2.5 border rounded-lg ${formErrors.productName ? 'border-red-500' : 'border-gray-200'}`}
-                  placeholder="Ex: Kaiak Aventura 100ml" autoComplete="off"
-                />
+                <label className="block text-sm font-medium mb-1 text-gray-700">Produtos <span className="text-red-500">*</span></label>
+                <div className="space-y-2">
+                  {formData.items.map((item, index) => (
+                    <div key={index} className="flex gap-2">
+                      <input
+                        type="text" list="caderneta-produtos" value={item.name}
+                        onChange={(ev) => handleItemChange(index, 'name', ev.target.value)}
+                        className={`flex-1 min-w-0 p-2.5 border rounded-lg ${formErrors[`item-${index}-name`] ? 'border-red-500' : 'border-gray-200'}`}
+                        placeholder={index === 0 ? 'Ex: Kaiak Aventura 100ml' : 'Outro produto'} autoComplete="off"
+                      />
+                      <input
+                        type="text" inputMode="decimal" value={item.amount}
+                        onChange={(ev) => handleItemChange(index, 'amount', ev.target.value)}
+                        className={`w-24 p-2.5 border rounded-lg text-right ${formErrors[`item-${index}-amount`] ? 'border-red-500' : 'border-gray-200'}`}
+                        placeholder="0,00"
+                      />
+                      {formData.items.length > 1 && (
+                        <button
+                          onClick={() => removeItemRow(index)}
+                          className="p-2 text-gray-400 hover:text-red-600 transition-colors shrink-0"
+                          title="Remover produto"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
                 <datalist id="caderneta-produtos">
                   {productNames.map((n) => <option key={n} value={n} />)}
                 </datalist>
-                {formErrors.productName && <p className="text-xs text-red-600 mt-1">{formErrors.productName}</p>}
+                {formErrors.items && <p className="text-xs text-red-600 mt-1">{formErrors.items}</p>}
+                <div className="flex items-center justify-between mt-2">
+                  <button onClick={addItemRow} className="flex items-center gap-1.5 text-xs font-semibold text-[#8B0000] hover:underline">
+                    <PlusCircle size={14} /> Adicionar outro produto
+                  </button>
+                  {formData.items.length > 1 && (
+                    <p className="text-xs text-gray-500">Total: <span className="font-bold text-gray-800">{formatBRL(formItemsTotal)}</span></p>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700">Valor (R$) <span className="text-red-500">*</span></label>
-                  <input
-                    type="text" inputMode="decimal" name="amount" value={formData.amount} onChange={handleFormChange}
-                    className={`w-full p-2.5 border rounded-lg ${formErrors.amount ? 'border-red-500' : 'border-gray-200'}`}
-                    placeholder="Ex: 89,90"
-                  />
-                  {formErrors.amount && <p className="text-xs text-red-600 mt-1">{formErrors.amount}</p>}
-                </div>
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-700">Data da compra</label>
                   <input type="date" name="saleDate" value={formData.saleDate} onChange={handleFormChange} className="w-full p-2.5 border border-gray-200 rounded-lg" />
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700">Combinado para pagar em <span className="text-gray-400 font-normal">(opcional)</span></label>
-                <input type="date" name="dueDate" value={formData.dueDate} onChange={handleFormChange} className="w-full p-2.5 border border-gray-200 rounded-lg" />
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Combinado p/ pagar <span className="text-gray-400 font-normal">(opcional)</span></label>
+                  <input type="date" name="dueDate" value={formData.dueDate} onChange={handleFormChange} className="w-full p-2.5 border border-gray-200 rounded-lg" />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1 text-gray-700">Observação <span className="text-gray-400 font-normal">(opcional)</span></label>
@@ -709,7 +803,7 @@ export default function CadernetaPage() {
             <div className="p-5 border-b border-gray-100">
               <h3 className="text-lg font-semibold text-gray-800">Registrar Pagamento</h3>
               <p className="text-sm text-gray-500 mt-1 break-words">
-                {payingEntry.clientName} · {payingEntry.productName}
+                {payingEntry.clientName} · {itemsLabel(payingEntry)}
               </p>
               <p className="text-sm font-semibold text-[#8B0000] mt-1">Falta pagar: {formatBRL(remainingOf(payingEntry))}</p>
             </div>
@@ -761,7 +855,7 @@ export default function CadernetaPage() {
           <div className="bg-white rounded-lg shadow-lg z-10 max-w-sm w-full p-6">
             <h3 className="text-lg font-semibold mb-2 text-gray-800">Excluir anotação</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Excluir a compra de <span className="font-semibold">{deleteTarget.productName}</span> de{' '}
+              Excluir a compra de <span className="font-semibold">{itemsLabel(deleteTarget)}</span> de{' '}
               <span className="font-semibold">{deleteTarget.clientName}</span>? Essa ação é permanente e apaga também o histórico de pagamentos.
             </p>
             <div className="flex justify-end gap-3">
