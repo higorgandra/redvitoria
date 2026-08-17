@@ -104,7 +104,9 @@ export default function CadernetaPage() {
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [toast, setToast] = useState(null);
-  const [productNames, setProductNames] = useState([]);
+  const [productOptions, setProductOptions] = useState([]);
+  // Índice da linha de produto cujo dropdown do catálogo está aberto.
+  const [openPickerIndex, setOpenPickerIndex] = useState(null);
 
   useBodyScrollLock(isFormOpen || !!payingEntry || !!deleteTarget);
 
@@ -141,16 +143,18 @@ export default function CadernetaPage() {
     return () => unsubscribe();
   }, []);
 
-  // Nomes de produtos do catálogo para o autocomplete do formulário.
+  // Produtos do catálogo para o dropdown do formulário (nome, preço e foto).
   useEffect(() => {
     getDocs(collection(db, 'products')).then((snap) => {
-      const names = new Set();
+      const map = new Map();
       snap.forEach((d) => {
         const p = d.data() || {};
-        if (p.name && p.status !== 'Anúncio') names.add(p.name);
+        if (p.name && p.status !== 'Anúncio') {
+          map.set(p.name, { name: p.name, price: Number(p.price) || 0, image: p.image || '' });
+        }
       });
-      setProductNames(Array.from(names).sort((a, b) => a.localeCompare(b)));
-    }).catch(() => { /* autocomplete é opcional; sem ele o campo segue livre */ });
+      setProductOptions(Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name)));
+    }).catch(() => { /* o dropdown é opcional; sem ele o campo segue livre */ });
   }, []);
 
   useEffect(() => {
@@ -266,6 +270,7 @@ export default function CadernetaPage() {
     setIsFormOpen(false);
     setEditingEntry(null);
     setFormErrors({});
+    setOpenPickerIndex(null);
   };
 
   const handleFormChange = (e) => {
@@ -307,7 +312,32 @@ export default function CadernetaPage() {
   };
 
   const removeItemRow = (index) => {
+    setOpenPickerIndex(null);
     setFormData((prev) => ({ ...prev, items: prev.items.filter((_, i) => i !== index) }));
+  };
+
+  // Escolha de um produto do catálogo no dropdown: preenche o nome e, se o
+  // valor ainda estiver vazio, o preço do catálogo (que continua editável).
+  const selectProduct = (index, product) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.map((it, i) => {
+        if (i !== index) return it;
+        const next = { ...it, name: product.name };
+        if (!String(it.amount ?? '').trim() && product.price > 0) {
+          next.amount = product.price.toFixed(2).replace('.', ',');
+        }
+        return next;
+      }),
+    }));
+    setFormErrors((prev) => {
+      const next = { ...prev };
+      delete next[`item-${index}-name`];
+      delete next[`item-${index}-amount`];
+      delete next.items;
+      return next;
+    });
+    setOpenPickerIndex(null);
   };
 
   // Total da compra somado ao vivo enquanto os produtos são digitados.
@@ -726,35 +756,77 @@ export default function CadernetaPage() {
               <div>
                 <label className="block text-sm font-medium mb-1 text-gray-700">Produtos <span className="text-red-500">*</span></label>
                 <div className="space-y-2">
-                  {formData.items.map((item, index) => (
-                    <div key={index} className="flex gap-2">
-                      <input
-                        type="text" list="caderneta-produtos" value={item.name}
-                        onChange={(ev) => handleItemChange(index, 'name', ev.target.value)}
-                        className={`flex-1 min-w-0 p-2.5 border rounded-lg ${formErrors[`item-${index}-name`] ? 'border-red-500' : 'border-gray-200'}`}
-                        placeholder={index === 0 ? 'Ex: Kaiak Aventura 100ml' : 'Outro produto'} autoComplete="off"
-                      />
-                      <input
-                        type="text" inputMode="decimal" value={item.amount}
-                        onChange={(ev) => handleItemChange(index, 'amount', ev.target.value)}
-                        className={`w-24 p-2.5 border rounded-lg text-right ${formErrors[`item-${index}-amount`] ? 'border-red-500' : 'border-gray-200'}`}
-                        placeholder="0,00"
-                      />
-                      {formData.items.length > 1 && (
-                        <button
-                          onClick={() => removeItemRow(index)}
-                          className="p-2 text-gray-400 hover:text-red-600 transition-colors shrink-0"
-                          title="Remover produto"
-                        >
-                          <X size={16} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                  {formData.items.map((item, index) => {
+                    const pickerOpen = openPickerIndex === index;
+                    const typed = normalize(item.name);
+                    const matches = typed
+                      ? productOptions.filter((p) => normalize(p.name).includes(typed))
+                      : productOptions;
+                    return (
+                      <div key={index}>
+                        <div className="flex gap-2">
+                          <input
+                            type="text" value={item.name}
+                            onChange={(ev) => handleItemChange(index, 'name', ev.target.value)}
+                            onFocus={() => setOpenPickerIndex(index)}
+                            onBlur={() => setOpenPickerIndex((cur) => (cur === index ? null : cur))}
+                            className={`flex-1 min-w-0 p-2.5 border rounded-lg ${formErrors[`item-${index}-name`] ? 'border-red-500' : 'border-gray-200'}`}
+                            placeholder="Toque para escolher ou digite" autoComplete="off"
+                          />
+                          <input
+                            type="text" inputMode="decimal" value={item.amount}
+                            onChange={(ev) => handleItemChange(index, 'amount', ev.target.value)}
+                            className={`w-24 p-2.5 border rounded-lg text-right ${formErrors[`item-${index}-amount`] ? 'border-red-500' : 'border-gray-200'}`}
+                            placeholder="0,00"
+                          />
+                          {formData.items.length > 1 && (
+                            <button
+                              onClick={() => removeItemRow(index)}
+                              className="p-2 text-gray-400 hover:text-red-600 transition-colors shrink-0"
+                              title="Remover produto"
+                            >
+                              <X size={16} />
+                            </button>
+                          )}
+                        </div>
+                        {/* Dropdown do catálogo: abre ao focar o campo e empurra o
+                            conteúdo (nada de posicionamento absoluto, que seria
+                            cortado pelo scroll do modal). O onPointerDown com
+                            preventDefault impede que o blur do input feche a
+                            lista antes de o clique na opção ser registrado. */}
+                        {pickerOpen && productOptions.length > 0 && (
+                          <div className="mt-1 border border-gray-200 rounded-lg bg-white shadow-sm max-h-48 overflow-y-auto">
+                            {matches.length === 0 ? (
+                              <p className="p-3 text-xs text-gray-400">Nenhum produto do catálogo com esse nome — pode digitar livremente.</p>
+                            ) : matches.map((p) => (
+                              <button
+                                key={p.name}
+                                type="button"
+                                onPointerDown={(ev) => ev.preventDefault()}
+                                onClick={() => selectProduct(index, p)}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0"
+                              >
+                                {p.image ? (
+                                  <img
+                                    src={p.image} loading="lazy" decoding="async" alt=""
+                                    className="w-8 h-8 rounded object-cover bg-gray-100 shrink-0"
+                                    onError={(ev) => { ev.target.style.visibility = 'hidden'; }}
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded bg-gray-100 shrink-0" />
+                                )}
+                                <span className="flex-1 min-w-0 text-sm text-gray-700 truncate">{p.name}</span>
+                                {p.price > 0 && (
+                                  <span className="text-xs font-semibold text-gray-500 shrink-0">{formatBRL(p.price)}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <datalist id="caderneta-produtos">
-                  {productNames.map((n) => <option key={n} value={n} />)}
-                </datalist>
                 {formErrors.items && <p className="text-xs text-red-600 mt-1">{formErrors.items}</p>}
                 <div className="flex items-center justify-between mt-2">
                   <button onClick={addItemRow} className="flex items-center gap-1.5 text-xs font-semibold text-[#8B0000] hover:underline">
